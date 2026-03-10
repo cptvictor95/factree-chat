@@ -26,6 +26,7 @@ export const NowPlaying = __t.object("NowPlaying", {
   addedBy: __t.identity(),
   startedAt: __t.timestamp(),
   isPlaying: __t.bool(),
+  pausedAtOffset: __t.u64(),
 });
 export type NowPlaying = __Infer<typeof NowPlaying>;
 

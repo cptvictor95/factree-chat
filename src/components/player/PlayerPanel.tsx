@@ -37,6 +37,12 @@ function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }): JSX.
   return <span className="volume-icon">🔊</span>;
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export function PlayerPanel(): JSX.Element {
   // The wrapper div is React-controlled. We manually append the YT target element
   // inside it so YouTube can replace it with an iframe without React interfering.
@@ -48,13 +54,18 @@ export function PlayerPanel(): JSX.Element {
     return saved !== null ? parseInt(saved, 10) : DEFAULT_VOLUME;
   });
   const [muted, setMuted] = useState(false);
-  // Stores the volume before the mute button is pressed so it can be restored on unmute
   const preMuteVolumeRef = useRef<number>(DEFAULT_VOLUME);
+
+  // Progress bar state: 0–1 fraction and total duration in seconds
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   const { nowPlaying, onPlayerStateChange } = useYouTubeSync(playerRef, playerReady);
   const { identity } = useSpacetimeDB();
   const playNext = useReducer(reducers.playNext);
+  const togglePlayback = useReducer(reducers.togglePlayback);
 
+  // ── YouTube player init ────────────────────────────────────────────────────
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
@@ -100,6 +111,49 @@ export function PlayerPanel(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Progress bar update ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!playerReady || !nowPlaying) {
+      setProgress(0);
+      setDuration(0);
+      return;
+    }
+
+    const update = (): void => {
+      const player = playerRef.current;
+      if (!player) return;
+      const total = player.getDuration();
+      if (!total) return;
+      setDuration(total);
+
+      if (!nowPlaying.isPlaying) {
+        setProgress(Number(nowPlaying.pausedAtOffset) / 1_000_000 / total);
+        return;
+      }
+
+      const elapsed = (Date.now() - nowPlaying.startedAt.toDate().getTime()) / 1000;
+      setProgress(Math.min(1, Math.max(0, elapsed / total)));
+    };
+
+    update();
+    if (!nowPlaying.isPlaying) return;
+
+    const interval = setInterval(update, 500);
+    return () => clearInterval(interval);
+    // Intentional: deps are primitive extractions from nowPlaying to avoid running
+    // on every render (useTable returns a new object reference each time).
+    // The full nowPlaying object is accessed inside via closure — safe because the
+    // effect re-runs whenever any of these meaningful values actually change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    playerReady,
+    nowPlaying?.isPlaying,
+    nowPlaying?.startedAt?.microsSinceUnixEpoch,
+    nowPlaying?.pausedAtOffset,
+    nowPlaying?.queueItemId,
+  ]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = parseInt(e.target.value, 10);
     setVolume(value);
@@ -135,7 +189,12 @@ export function PlayerPanel(): JSX.Element {
     playNext({ queueItemId: nowPlaying.queueItemId });
   };
 
+  const handlePlayPause = (): void => {
+    togglePlayback();
+  };
+
   const addedByName = nowPlaying?.addedBy.toHexString().substring(0, 8) ?? '';
+  const elapsedSeconds = duration > 0 ? progress * duration : 0;
 
   return (
     <div className="player-panel">
@@ -151,6 +210,22 @@ export function PlayerPanel(): JSX.Element {
             YouTube creates its <iframe> inside here, outside React's tree. */}
         <div ref={wrapperRef} className="player-embed" />
       </div>
+
+      {/* Progress bar — sits between embed and controls, spans full width */}
+      {nowPlaying && (
+        <div
+          className="player-progress"
+          title={duration > 0 ? `${formatTime(elapsedSeconds)} / ${formatTime(duration)}` : ''}
+          aria-label="Playback progress"
+        >
+          <div className="player-progress-fill" style={{ width: `${progress * 100}%` }} />
+          {duration > 0 && (
+            <span className="player-progress-time">
+              {formatTime(elapsedSeconds)} / {formatTime(duration)}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="player-controls">
         <AnimatePresence mode="wait">
@@ -190,36 +265,48 @@ export function PlayerPanel(): JSX.Element {
           )}
         </AnimatePresence>
 
-        {nowPlaying && (
-          <button
-            className="skip-btn"
-            onClick={handleSkip}
-            aria-label="Skip song"
-            title="Skip to next song"
-          >
-            Skip ⏭
-          </button>
-        )}
+        <div className="player-actions">
+          {nowPlaying && (
+            <>
+              <button
+                className="playpause-btn"
+                onClick={handlePlayPause}
+                aria-label={nowPlaying.isPlaying ? 'Pause' : 'Play'}
+                title={nowPlaying.isPlaying ? 'Pause (synced)' : 'Play (synced)'}
+              >
+                {nowPlaying.isPlaying ? '⏸' : '▶'}
+              </button>
+              <button
+                className="skip-btn"
+                onClick={handleSkip}
+                aria-label="Skip song"
+                title="Skip to next song"
+              >
+                ⏭
+              </button>
+            </>
+          )}
 
-        <div className="volume-control">
-          <button
-            className="volume-mute-btn"
-            onClick={handleMuteToggle}
-            aria-label={muted ? 'Unmute' : 'Mute'}
-            title={muted ? 'Unmute' : 'Mute'}
-          >
-            <VolumeIcon volume={volume} muted={muted} />
-          </button>
-          <input
-            type="range"
-            className="volume-slider"
-            min={0}
-            max={100}
-            value={muted ? 0 : volume}
-            onChange={handleVolumeChange}
-            aria-label="Volume"
-          />
-          <span className="volume-value">{muted ? 0 : volume}</span>
+          <div className="volume-control">
+            <button
+              className="volume-mute-btn"
+              onClick={handleMuteToggle}
+              aria-label={muted ? 'Unmute' : 'Mute'}
+              title={muted ? 'Unmute' : 'Mute'}
+            >
+              <VolumeIcon volume={volume} muted={muted} />
+            </button>
+            <input
+              type="range"
+              className="volume-slider"
+              min={0}
+              max={100}
+              value={muted ? 0 : volume}
+              onChange={handleVolumeChange}
+              aria-label="Volume"
+            />
+            <span className="volume-value">{muted ? 0 : volume}</span>
+          </div>
         </div>
       </div>
     </div>
