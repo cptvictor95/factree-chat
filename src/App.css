@@ -35,6 +35,81 @@
   background-size: 200px 200px;
 }
 
+/* ── JOIN SPLASH ─────────────────────────────────────────────────────────── */
+.join-splash {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.join-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.join-vinyl {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    var(--surface) 28%,
+    var(--border) 30%,
+    var(--surface) 32%,
+    var(--bg) 48%,
+    var(--surface) 50%,
+    var(--text) 52%,
+    var(--surface) 54%
+  );
+  box-shadow:
+    0 0 0 2px var(--border),
+    0 8px 32px rgba(0, 0, 0, 0.18);
+  margin-bottom: 0.25rem;
+}
+
+.join-logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -1.5px;
+  margin: 0;
+}
+
+.join-tagline {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.join-btn {
+  margin-top: 0.5rem;
+  padding: 0.75rem 2rem;
+  font-family: 'Lora', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: box-shadow 0.15s ease;
+}
+
+.join-btn:hover {
+  box-shadow: 0 4px 16px rgba(232, 160, 48, 0.35);
+}
+
 /* ── CONNECTING SCREEN ──────────────────────────────────────────────────── */
 .connecting {
   display: flex;
