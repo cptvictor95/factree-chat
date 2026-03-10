@@ -1,0 +1,62 @@
+---
+description: Git branching and PR workflow — always branch, PR, CI, then merge
+alwaysApply: true
+---
+
+# Git Workflow
+
+## Before starting any work
+
+1. **Check current state first**
+   ```bash
+   git branch --show-current
+   git status
+   gh pr list --state open
+   ```
+2. If already on a feature branch with uncommitted changes, ask the user whether to continue on this branch or stash/commit first.
+3. If on `main` or `master`, always create a new branch before making any changes.
+
+## Branch naming
+
+```
+feature/<short-description>   # new functionality
+fix/<short-description>        # bug fix
+chore/<short-description>      # tooling, deps, docs
+```
+
+## Workflow for every feature or fix
+
+```
+main → checkout new branch → commit → push → open PR → wait for CI → merge → back to main
+```
+
+1. `git checkout -b <type>/<name>` from an up-to-date `main`
+2. Make changes, commit with a clear conventional commit message
+3. `git push -u origin <branch>`
+4. Open PR with `gh pr create` — include a concise summary and test plan
+5. **Wait for CI to pass** — do not merge if checks are failing
+6. Merge via GitHub (or `gh pr merge`) — **never force-push to main**
+7. After merge, switch back to `main` and pull: `git checkout main && git pull`
+
+## Commit messages (conventional commits)
+
+```
+feat: add queue reactions panel
+fix: correct playback timestamp on app resume
+chore: remove unused keep-alive hook
+```
+
+## Rules
+
+- **Never commit directly to `main`** — always use a branch + PR
+- **One concern per branch** — don't mix unrelated features in the same PR
+- **Close stale PRs explicitly** — don't let them accumulate
+- **Resync branches** with `git merge main` before opening a PR if the branch is behind
+- **Never skip CI** — if CI is failing, fix it before merging
+
+## Closing PRs
+
+When closing a PR without merging (superseded, abandoned):
+```bash
+gh pr close <number> --comment "Reason for closing"
+```

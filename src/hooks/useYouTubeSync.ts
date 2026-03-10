@@ -139,7 +139,12 @@ export function useYouTubeSync(
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     // On mount while visible (e.g. after reconnect): treat as "just returned" and sync
-    if (document.visibilityState === 'visible' && nowPlaying?.isPlaying && playerRef.current && playerReady) {
+    if (
+      document.visibilityState === 'visible' &&
+      nowPlaying?.isPlaying &&
+      playerRef.current &&
+      playerReady
+    ) {
       markReturnedFromBackground();
       seekAndPlay();
     }
@@ -157,21 +162,24 @@ export function useYouTubeSync(
     };
   }, [playerRef, playerReady, nowPlaying, markReturnedFromBackground, seekAndPlay]);
 
-  const onPlayerStateChange = useCallback((event: YT.OnStateChangeEvent) => {
-    if (event.data === YT.PlayerState.ENDED) {
-      const current = nowPlayingRef.current;
-      if (!current) return;
-      playNextRef.current({ queueItemId: current.queueItemId });
-      return;
-    }
+  const onPlayerStateChange = useCallback(
+    (event: YT.OnStateChangeEvent) => {
+      if (event.data === YT.PlayerState.ENDED) {
+        const current = nowPlayingRef.current;
+        if (!current) return;
+        playNextRef.current({ queueItemId: current.queueItemId });
+        return;
+      }
 
-    // Path A: YouTube self-paused right after we returned from background → auto-resume
-    if (event.data === YT.PlayerState.PAUSED && justReturnedFromBackgroundRef.current) {
-      const current = nowPlayingRef.current;
-      if (!current?.isPlaying) return;
-      seekAndPlay();
-    }
-  }, [seekAndPlay]);
+      // Path A: YouTube self-paused right after we returned from background → auto-resume
+      if (event.data === YT.PlayerState.PAUSED && justReturnedFromBackgroundRef.current) {
+        const current = nowPlayingRef.current;
+        if (!current?.isPlaying) return;
+        seekAndPlay();
+      }
+    },
+    [seekAndPlay]
+  );
 
   return { nowPlaying, onPlayerStateChange };
 }

@@ -13,6 +13,7 @@ const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://localhost:3000';
 const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'quickstart-chat';
 const TOKEN_KEY = STORAGE_KEYS.authToken(HOST, DB_NAME);
 
+// eslint-disable-next-line react-refresh/only-export-components -- entry point, not a hot-reload module
 function Root(): React.ReactElement {
   const [connectionKey, setConnectionKey] = useState(0);
 
@@ -31,6 +32,7 @@ function Root(): React.ReactElement {
       .onConnectError((_ctx: ErrorContext, err: Error) => {
         console.log('Error connecting to SpacetimeDB:', err);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- connectionKey triggers re-creation to re-read token from localStorage on reconnect
   }, [connectionKey]);
 
   const reconnect = useCallback(() => {
