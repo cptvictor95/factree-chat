@@ -5,7 +5,7 @@ A synchronized music listening room built with **SpacetimeDB**. Everyone in the 
 ## What it does
 
 - **Synchronized playback** — SpacetimeDB stores a server-authoritative `started_at` timestamp. Each client calculates elapsed time on connect and seeks the player there, so late joiners always catch up to the right position.
-- **Shared queue** — Any user can add YouTube videos (by URL or ID). The queue advances automatically when a video ends; any user can skip.
+- **Shared queue** — Any user can add YouTube videos by pasting a URL or by searching (when deployed with a YouTube API key). The queue advances automatically when a video ends; any user can skip.
 - **Real-time chat** — Presence events (join / leave) are woven into the chat timeline alongside user messages.
 - **Volume control** — Volume and mute state are local per-user, persisted in `localStorage`.
 
@@ -16,7 +16,7 @@ A synchronized music listening room built with **SpacetimeDB**. Everyone in the 
 | Frontend         | React + TypeScript + Vite                                  |
 | Realtime backend | [SpacetimeDB](https://spacetimedb.com) (TypeScript module) |
 | Video            | YouTube IFrame API                                         |
-| Video metadata   | YouTube oEmbed (no API key required)                       |
+| Video metadata   | YouTube oEmbed (URL mode); YouTube Data API v3 (search, optional) |
 | Styling          | Plain CSS with custom properties                           |
 
 ## Project structure
@@ -60,6 +60,22 @@ yarn dev
 ```
 
 The app connects to the SpacetimeDB instance configured in `spacetime.json` / `spacetime.local.json`.
+
+### Optional: YouTube search (production)
+
+The queue form supports two modes: **Link** (paste a URL) and **Search** (type a query and pick a result). Search uses the [YouTube Data API v3](https://developers.google.com/youtube/v3) and only runs when the app is deployed (e.g. on Vercel) with an API key set.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project, enable **YouTube Data API v3**, and create an API key.
+2. In your host (e.g. Vercel), set the environment variable **`YOUTUBE_API_KEY`** to that key.
+3. Redeploy. The **Search** tab will then call `/api/search?q=...` and show results; users can add a video with one tap.
+
+Locally (`yarn dev`), `/api/search` is not available unless you run `vercel dev`, so the Search tab will show an error—Link mode still works.
+
+#### Redeploy & debug (YouTube search)
+
+- **Redeploy so Vercel uses the new env var:** Push to the branch Vercel deploys (e.g. `main`), or in Vercel → Project → Deployments → ⋮ on the latest → **Redeploy** (no code change needed).
+- **See why search fails:** The Search tab shows the error message from the API (e.g. "Search not configured", or YouTube’s message if the key is invalid or quota is exceeded). For more detail: Vercel → Project → **Logs** or **Functions** → open the `/api/search` run and check the server-side error.
+- **Test locally:** Run `vercel dev` (with `YOUTUBE_API_KEY` in `.env.local`) so `/api/search` is available; use the Search tab and click **Search** to trigger the request. In the browser Network tab, inspect the `/api/search?q=...` response status and body to debug.
 
 ### Publishing the SpacetimeDB module
 
