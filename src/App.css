@@ -64,12 +64,13 @@
 }
 
 .join-logo {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3rem;
-  font-weight: 900;
-  color: var(--accent);
-  letter-spacing: -1.5px;
   margin: 0;
+}
+
+.join-logo img {
+  height: 3rem;
+  width: auto;
+  display: block;
 }
 
 .join-tagline {
@@ -111,12 +112,9 @@
 }
 
 .connecting-logo {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2.75rem;
-  font-weight: 900;
-  color: var(--accent);
-  letter-spacing: -1px;
   display: block;
+  height: 2.75rem;
+  width: auto;
 }
 
 .connecting-text {
@@ -137,11 +135,9 @@
 }
 
 .app-logo {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 900;
-  font-size: 1.3rem;
-  color: var(--accent);
-  letter-spacing: -0.5px;
+  height: 1.75rem;
+  width: auto;
+  display: block;
 }
 
 .app-online-count {

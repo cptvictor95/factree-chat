@@ -47,9 +47,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   url.searchParams.set('q', q.trim());
   url.searchParams.set('key', apiKey);
 
+  // Server-side requests have no browser Referer; Google blocks "referer <empty>" when the key
+  // is restricted to HTTP referrers. Sending our app origin can satisfy referrer restrictions;
+  // alternatively set the key's Application restrictions to "None" (recommended for server-side).
+  const origin =
+    process.env.VERCEL_URL != null
+      ? `https://${process.env.VERCEL_URL}`
+      : typeof req.headers?.host === 'string'
+        ? `https://${req.headers.host}`
+        : null;
+
+  const fetchOptions: RequestInit = origin ? { headers: { Referer: origin } } : {};
+
   let response: Response;
   try {
-    response = await fetch(url.toString());
+    response = await fetch(url.toString(), fetchOptions);
   } catch (err) {
     console.error('YouTube API fetch error:', err);
     res.status(502).json({ error: 'Search request failed' });

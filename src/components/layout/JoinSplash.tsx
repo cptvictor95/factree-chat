@@ -21,7 +21,9 @@ export function JoinSplash({ onJoin }: JoinSplashProps): JSX.Element {
           transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
           aria-hidden="true"
         />
-        <h1 className="join-logo">factree.fm</h1>
+        <h1 className="join-logo">
+          <img src="/logo.svg" alt="factree.fm" width="200" height="44" />
+        </h1>
         <p className="join-tagline">Your private listening room</p>
         <motion.button
           className="join-btn"
