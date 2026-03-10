@@ -1,67 +1,91 @@
-# SpacetimeDB TypeScript Quickstart Chat
+# factree.fm
 
-This is a simple chat application that demonstrates how to use SpacetimeDB with TypeScript and React. The chat application is a simple chat room where users can send messages to each other. The chat application uses SpacetimeDB to store the chat messages.
+A synchronized music listening room built with **SpacetimeDB**. Everyone in the room hears the same second of the same YouTube video, with a shared queue and real-time chat.
 
-It is based directly on the plain React + TypeScript + Vite template. You can follow the quickstart guide for how creating this project from scratch at [SpacetimeDB TypeScript Quickstart](https://spacetimedb.com/docs/sdks/typescript/quickstart).
+## What it does
 
-You can follow the instructions for creating your own SpacetimeDB module here: [SpacetimeDB Rust Module Quickstart](https://spacetimedb.com/docs/modules/rust/quickstart). Place the module in the `quickstart-chat/server` directory for compability with this project.
+- **Synchronized playback** — SpacetimeDB stores a server-authoritative `started_at` timestamp. Each client calculates elapsed time on connect and seeks the player there, so late joiners always catch up to the right position.
+- **Shared queue** — Any user can add YouTube videos (by URL or ID). The queue advances automatically when a video ends; any user can skip.
+- **Real-time chat** — Presence events (join / leave) are woven into the chat timeline alongside user messages.
+- **Volume control** — Volume and mute state are local per-user, persisted in `localStorage`.
 
-In order to run this example, you need to:
+## Tech stack
 
-- `pnpm build` in the root directory (`spacetimedb-typescriptsdk`)
-- `pnpm install` in this directory
-- `pnpm build` in this directory
-- `pnpm dev` in this directory to run the example
+| Layer | Technology |
+|---|---|
+| Frontend | React + TypeScript + Vite |
+| Realtime backend | [SpacetimeDB](https://spacetimedb.com) (TypeScript module) |
+| Video | YouTube IFrame API |
+| Video metadata | YouTube oEmbed (no API key required) |
+| Styling | Plain CSS with custom properties |
 
-Below is copied from the original template README:
+## Project structure
 
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
+```
+factree-chat/
+├── spacetimedb/          # SpacetimeDB server module (TypeScript)
+│   └── src/index.ts      # Tables: user, message, queue_item, now_playing
+│                         # Reducers: add_to_queue, remove_from_queue, play_next
+├── src/
+│   ├── components/
+│   │   ├── chat/         # ChatPanel — messages, presence, name editing
+│   │   ├── player/       # PlayerPanel — YouTube IFrame + volume controls
+│   │   └── queue/        # QueuePanel + AddToQueueForm
+│   ├── hooks/
+│   │   └── useYouTubeSync.ts   # Syncs YT player to now_playing state
+│   ├── module_bindings/  # Auto-generated SpacetimeDB TypeScript types
+│   └── utils/
+│       └── youtube.ts    # URL parsing + oEmbed metadata fetch
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Getting started
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react';
+### Prerequisites
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-});
+- [Node.js](https://nodejs.org/) 18+
+- [Yarn](https://yarnpkg.com/)
+- [SpacetimeDB CLI](https://spacetimedb.com/install)
+
+### Local development
+
+```bash
+# Install frontend dependencies
+yarn install
+
+# Install SpacetimeDB module dependencies
+cd spacetimedb && yarn install && cd ..
+
+# Run Vite dev server
+yarn dev
 ```
+
+The app connects to the SpacetimeDB instance configured in `spacetime.json` / `spacetime.local.json`.
+
+### Publishing the SpacetimeDB module
+
+```bash
+yarn spacetime:publish
+```
+
+This compiles and publishes `spacetimedb/src/index.ts` to SpacetimeDB maincloud.
+
+### Regenerating module bindings
+
+After changing the SpacetimeDB module schema:
+
+```bash
+yarn spacetime:generate
+```
+
+This updates the auto-generated files in `src/module_bindings/`.
+
+## Key design decisions
+
+**Synchronized playback via `started_at`**
+Rather than broadcasting "seek to X" events, the `now_playing` table stores a `started_at` timestamp. Every client independently calculates `elapsed = (now - started_at)` and seeks there. This means late joiners automatically land at the right position with no special logic.
+
+**Idempotent `play_next` reducer**
+When a video ends, all connected clients fire `play_next`. SpacetimeDB serializes these reducer calls. The reducer checks whether `queueItemId` still matches the current `now_playing` row — only the first call succeeds; the rest are no-ops.
+
+**YouTube IFrame API + React reconciliation**
+The YouTube Player API replaces its target `<div>` with an `<iframe>`. To avoid React's virtual DOM fighting over that element, the player's target div is created and appended *imperatively* (outside React's tree) into a ref-controlled wrapper. React never knows the iframe exists.

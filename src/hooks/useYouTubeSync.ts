@@ -53,8 +53,7 @@ export function useYouTubeSync(
   }, [nowPlaying, playerRef, playerReady]);
 
   const onPlayerStateChange = useCallback((event: YT.OnStateChangeEvent) => {
-    // YT.PlayerState.ENDED === 0
-    if (event.data !== 0) return;
+    if (event.data !== YT.PlayerState.ENDED) return;
 
     const current = nowPlayingRef.current;
     if (!current) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { JSX } from 'react';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { Identity, Timestamp } from 'spacetimedb';
@@ -6,11 +6,16 @@ import { tables, reducers } from '../../module_bindings';
 import type * as Types from '../../module_bindings/types';
 
 interface PrettyMessage {
+  key: string;
   senderName: string;
   text: string;
   sent: Timestamp;
   kind: 'system' | 'user';
   isOwn: boolean;
+}
+
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export function ChatPanel(): JSX.Element {
@@ -26,6 +31,9 @@ export function ChatPanel(): JSX.Element {
 
   const [messages] = useTable(tables.message);
 
+  // Only subscribe to online users — offline users are not needed for the UI.
+  // Unknown message senders (e.g. users who left before we joined) fall back to
+  // truncated hex, which is acceptable for this use case.
   const [onlineUsers] = useTable(
     tables.user.where(r => r.online.eq(true)),
     {
@@ -54,33 +62,36 @@ export function ChatPanel(): JSX.Element {
     }
   );
 
-  const [offlineUsers] = useTable(tables.user.where(r => r.online.eq(false)));
-  const allUsers = [...onlineUsers, ...offlineUsers];
-
-  const currentUser = identity
-    ? allUsers.find(u => u.identity.isEqual(identity))
-    : null;
+  const currentUser = useMemo(
+    () => (identity ? onlineUsers.find(u => u.identity.isEqual(identity)) : null),
+    [identity, onlineUsers]
+  );
 
   const displayName =
     currentUser?.name ?? identity?.toHexString().substring(0, 8) ?? '';
 
-  const prettyMessages: PrettyMessage[] = [...messages, ...systemMessages]
-    .sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
-    .map(msg => {
-      const sender = allUsers.find(
-        u => u.identity.toHexString() === msg.sender.toHexString()
-      );
-      const isSystem = Identity.zero().isEqual(msg.sender);
-      return {
-        senderName: sender?.name ?? msg.sender.toHexString().substring(0, 8),
-        text: msg.text,
-        sent: msg.sent,
-        kind: isSystem ? 'system' : 'user',
-        isOwn: !!identity && msg.sender.isEqual(identity),
-      };
-    });
+  // Merge DB messages + local system messages, sort once, and map to display shape.
+  // useMemo prevents re-sorting on every render when unrelated state changes.
+  const prettyMessages = useMemo<PrettyMessage[]>(() => {
+    return [...messages, ...systemMessages]
+      .sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
+      .map(msg => {
+        const isSystem = Identity.zero().isEqual(msg.sender);
+        const sender = isSystem
+          ? null
+          : onlineUsers.find(u => u.identity.isEqual(msg.sender));
+        return {
+          // Stable key: sender hex + microsecond timestamp avoids index-based keys
+          key: `${msg.sender.toHexString()}-${msg.sent.toDate().getTime()}`,
+          senderName: sender?.name ?? msg.sender.toHexString().substring(0, 8),
+          text: msg.text,
+          sent: msg.sent,
+          kind: isSystem ? 'system' : 'user',
+          isOwn: !!identity && !isSystem && msg.sender.isEqual(identity),
+        };
+      });
+  }, [messages, systemMessages, onlineUsers, identity]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [prettyMessages.length]);
@@ -93,20 +104,22 @@ export function ChatPanel(): JSX.Element {
 
   const handleSubmitMessage = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    const text = newMessage;
+    const text = newMessage.trim();
+    if (!text) return;
     setNewMessage('');
-    await sendMessage({ text });
+    try {
+      await sendMessage({ text });
+    } catch {
+      // Restore the message so the user doesn't lose what they typed
+      setNewMessage(text);
+    }
   };
 
   return (
     <div className="chat-panel">
-      {/* User list + name editing */}
       <div className="chat-users">
         <div className="chat-users-header">
-          <span className="chat-users-count">
-            {onlineUsers.length} online
-          </span>
+          <span className="chat-users-count">{onlineUsers.length} online</span>
           {!isEditingName ? (
             <button
               className="chat-name-btn"
@@ -148,21 +161,16 @@ export function ChatPanel(): JSX.Element {
         </ul>
       </div>
 
-      {/* Message list */}
       <div className="chat-messages">
         {prettyMessages.length === 0 && (
           <p className="chat-empty">No messages yet. Say hello!</p>
         )}
-        {prettyMessages.map((msg, i) => {
-          const sentDate = msg.sent.toDate();
-          const timeString = sentDate.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+        {prettyMessages.map(msg => {
+          const timeString = formatTime(msg.sent.toDate());
 
           if (msg.kind === 'system') {
             return (
-              <div key={i} className="chat-message chat-message--system">
+              <div key={msg.key} className="chat-message chat-message--system">
                 <span className="chat-message-text">{msg.text}</span>
                 <span className="chat-message-time">{timeString}</span>
               </div>
@@ -171,7 +179,7 @@ export function ChatPanel(): JSX.Element {
 
           return (
             <div
-              key={i}
+              key={msg.key}
               className={`chat-message chat-message--user${msg.isOwn ? ' chat-message--own' : ''}`}
             >
               <div className="chat-message-header">
@@ -185,7 +193,6 @@ export function ChatPanel(): JSX.Element {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message input */}
       <form className="chat-input-form" onSubmit={handleSubmitMessage}>
         <input
           type="text"

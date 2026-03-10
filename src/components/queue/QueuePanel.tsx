@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { tables, reducers } from '../../module_bindings';
@@ -7,15 +8,10 @@ import { AddToQueueForm } from './AddToQueueForm';
 interface QueueItemRowProps {
   item: Types.QueueItem;
   isOwn: boolean;
+  onRemove: (id: bigint) => void;
 }
 
-function QueueItemRow({ item, isOwn }: QueueItemRowProps): JSX.Element {
-  const removeFromQueue = useReducer(reducers.removeFromQueue);
-
-  const handleRemove = (): void => {
-    removeFromQueue({ queueItemId: item.id });
-  };
-
+function QueueItemRow({ item, isOwn, onRemove }: QueueItemRowProps): JSX.Element {
   return (
     <div className="queue-item">
       <span className="queue-item-position">#{item.position}</span>
@@ -33,7 +29,7 @@ function QueueItemRow({ item, isOwn }: QueueItemRowProps): JSX.Element {
       {isOwn && (
         <button
           className="queue-item-remove"
-          onClick={handleRemove}
+          onClick={() => onRemove(item.id)}
           aria-label={`Remove ${item.title} from queue`}
           title="Remove from queue"
         >
@@ -47,12 +43,24 @@ function QueueItemRow({ item, isOwn }: QueueItemRowProps): JSX.Element {
 export function QueuePanel(): JSX.Element {
   const [queueItems] = useTable(tables.queue_item);
   const { identity } = useSpacetimeDB();
+  const removeFromQueue = useReducer(reducers.removeFromQueue);
 
-  const sorted = [...queueItems].sort((a, b) => a.position - b.position);
+  const sorted = useMemo(
+    () => [...queueItems].sort((a, b) => a.position - b.position),
+    [queueItems]
+  );
 
-  const myPosition = identity
-    ? sorted.find(item => item.addedBy.isEqual(identity))?.position ?? null
-    : null;
+  const myPosition = useMemo(
+    () =>
+      identity
+        ? sorted.find(item => item.addedBy.isEqual(identity))?.position ?? null
+        : null,
+    [identity, sorted]
+  );
+
+  const handleRemove = (queueItemId: bigint): void => {
+    removeFromQueue({ queueItemId });
+  };
 
   return (
     <div className="queue-panel">
@@ -72,6 +80,7 @@ export function QueuePanel(): JSX.Element {
               key={item.id.toString()}
               item={item}
               isOwn={!!identity && item.addedBy.isEqual(identity)}
+              onRemove={handleRemove}
             />
           ))
         )}
