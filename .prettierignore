@@ -3,3 +3,5 @@ dist
 src/module_bindings
 package-lock.json
 yarn.lock
+# Workflow files must stay byte-for-byte identical to main for Claude Code Review security check
+.github/workflows/
