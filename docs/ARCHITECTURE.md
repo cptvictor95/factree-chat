@@ -24,34 +24,55 @@
 factree-chat/
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml                  Lint + typecheck + build + test on every PR
-│       ├── claude-code-review.yml  Automatic Claude review on every PR
-│       └── claude.yml              @claude mention responder in issues/comments
+│       └── ci.yml                  Lint + typecheck + build + test on every PR
 ├── docs/
 │   ├── ARCHITECTURE.md             (this file)
-│   ├── design-direction.md         Visual design decisions and MoSCoW backlog
+│   └── design-direction.md        Visual design decisions and MoSCoW backlog
 ├── spacetimedb/                    Backend module (TypeScript)
 │   └── src/
-│       ├── schema.ts               Tables + spacetimedb instance export
-│       └── index.ts                Reducers + lifecycle hooks
+│       └── index.ts                Tables, reducers, lifecycle hooks
 ├── src/                            Frontend (React + Vite)
 │   ├── components/
-│   │   ├── chat/                   ChatPanel
-│   │   ├── player/                 PlayerPanel
-│   │   └── queue/                  QueuePanel, QueueItemRow, AddToQueueForm
+│   │   ├── layout/                 App-level UI (splash, header, tabs)
+│   │   │   ├── AppHeader.tsx
+│   │   │   ├── ConnectingScreen.tsx
+│   │   │   ├── JoinSplash.tsx
+│   │   │   ├── MobileTabs.tsx
+│   │   │   └── index.ts
+│   │   ├── chat/
+│   │   │   ├── ChatPanel.tsx
+│   │   │   ├── chat.css
+│   │   │   └── index.ts
+│   │   ├── player/
+│   │   │   ├── PlayerPanel.tsx
+│   │   │   ├── player.css
+│   │   │   └── index.ts
+│   │   └── queue/
+│   │       ├── AddToQueueForm.tsx
+│   │       ├── QueuePanel.tsx
+│   │       ├── queue.css
+│   │       └── index.ts
+│   ├── constants/
+│   │   ├── storage.ts              LocalStorage keys, default values
+│   │   └── index.ts
+│   ├── types/
+│   │   ├── app.ts                  Shared app types (e.g. MobileTab)
+│   │   └── index.ts
 │   ├── hooks/
 │   │   └── useYouTubeSync.ts       Synchronized playback hook
 │   ├── utils/
 │   │   └── youtube.ts              URL parsing, oEmbed metadata
 │   ├── module_bindings/            ← AUTO-GENERATED (spacetime generate)
-│   ├── App.tsx                     App shell, layout, connecting state
-│   ├── App.css                     All component styles
+│   ├── App.tsx                     App shell: layout composition only
+│   ├── App.css                     Layout + global (grid, splash, connecting, header)
 │   ├── index.css                   Design tokens, resets, typography
 │   └── main.tsx                    SpacetimeDBProvider + React root
 ├── ROADMAP.md                      Phased feature plan
 ├── PRD.md                          Original product requirements
 └── eslint.config.js / .prettierrc  Code quality tooling
 ```
+
+**Imports:** Use the `@/` path alias for src (e.g. `import { tables } from '@/module_bindings'`, `import { ChatPanel } from '@/components/chat'`). Feature CSS is co-located and imported by the panel that uses it (e.g. `ChatPanel` imports `./chat.css`).
 
 ---
 

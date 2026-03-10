@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { useReducer } from 'spacetimedb/react';
-import { reducers } from '../../module_bindings';
-import { parseVideoId, fetchVideoMetadata } from '../../utils/youtube';
+import { reducers } from '@/module_bindings';
+import { parseVideoId, fetchVideoMetadata } from '@/utils/youtube';
 
 export function AddToQueueForm(): JSX.Element {
   const [url, setUrl] = useState('');

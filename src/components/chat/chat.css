@@ -1,0 +1,213 @@
+/* Chat panel — users list, messages, input */
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-users {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chat-users-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.chat-users-count {
+  font-size: 0.67rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 500;
+}
+
+.chat-name-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.74rem;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 4px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.chat-name-btn:hover {
+  background: var(--surface-hover);
+  color: var(--accent);
+}
+
+.chat-name-form {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.chat-name-input {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  min-width: 0;
+}
+
+.chat-name-save {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: auto;
+}
+
+.chat-users-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.chat-user-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.74rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+
+.chat-user-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: dot-pulse 3s ease-in-out infinite;
+}
+
+.chat-user-name {
+  color: var(--text);
+}
+
+.chat-user-you {
+  color: var(--text-muted);
+}
+
+.chat-messages {
+  flex: 1 1 0;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.chat-empty {
+  font-family: 'Lora', serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 1.5rem;
+  opacity: 0.7;
+}
+
+.chat-message--system {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  font-style: italic;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  opacity: 0.65;
+}
+
+.chat-message--user {
+  background: var(--surface);
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  border-left: 2px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.chat-message--own {
+  background: var(--surface-own);
+  border-left: 2px solid var(--accent);
+}
+
+.chat-message-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.15rem;
+}
+
+.chat-message-sender {
+  font-weight: 600;
+  font-size: 0.7rem;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--accent);
+}
+
+.chat-message-time {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.chat-message-text {
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+  font-family: 'Lora', serif;
+}
+
+.chat-input-form {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.chat-send-btn {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+}

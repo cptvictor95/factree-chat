@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useTable, useReducer } from 'spacetimedb/react';
-import { tables, reducers } from '../module_bindings';
-import type * as Types from '../module_bindings/types';
+import { tables, reducers } from '@/module_bindings';
+import type * as Types from '@/module_bindings/types';
 
 interface UseYouTubeSyncResult {
   nowPlaying: Types.NowPlaying | null;

@@ -3,8 +3,9 @@ import type { JSX } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { Identity, Timestamp } from 'spacetimedb';
-import { tables, reducers } from '../../module_bindings';
-import type * as Types from '../../module_bindings/types';
+import { tables, reducers } from '@/module_bindings';
+import './chat.css';
+import type * as Types from '@/module_bindings/types';
 
 interface PrettyMessage {
   key: string;

@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import type { JSX } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
-import { tables, reducers } from '../../module_bindings';
-import type * as Types from '../../module_bindings/types';
+import { tables, reducers } from '@/module_bindings';
+import type * as Types from '@/module_bindings/types';
 import { AddToQueueForm } from './AddToQueueForm';
+import './queue.css';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 8, scale: 0.96 },
