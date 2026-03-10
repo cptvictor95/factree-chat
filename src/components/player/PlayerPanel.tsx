@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type { JSX } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSpacetimeDB, useReducer, useTable } from 'spacetimedb/react';
@@ -101,10 +101,26 @@ export function PlayerPanel(): JSX.Element {
   const togglePlayback = useReducer(reducers.togglePlayback);
   const sendReaction = useReducer(reducers.sendReaction);
 
-  // Watch reaction table — animate only reactions that arrived after we joined
+  const nowPlayingRef = useRef(nowPlaying);
+  nowPlayingRef.current = nowPlaying;
+
+  const [reactions] = useTable(tables.reaction);
+
+  // Reaction counts for the current song (reactions tied to this play)
+  const currentSongReactionCounts = useMemo((): Record<string, number> => {
+    if (!nowPlaying?.playedItemId) return {};
+    const counts: Record<string, number> = {};
+    for (const r of reactions) {
+      if (r.playedItemId !== undefined && r.playedItemId === nowPlaying.playedItemId) {
+        counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [reactions, nowPlaying?.playedItemId]);
+
   const addFloatingReaction = useCallback((emoji: string): void => {
     const uid = `${Date.now()}-${Math.random()}`;
-    const x = 15 + Math.random() * 70; // 15–85% horizontal within the player
+    const x = 15 + Math.random() * 70;
     setFloatingReactions(prev => [...prev, { uid, emoji, x }]);
     setTimeout(() => {
       setFloatingReactions(prev => prev.filter(r => r.uid !== uid));
@@ -113,9 +129,14 @@ export function PlayerPanel(): JSX.Element {
 
   useTable(tables.reaction, {
     onInsert: reaction => {
-      // Only animate reactions that arrive after we joined this session
       if (reaction.sentAt.toDate() < sessionStartRef.current) return;
-      addFloatingReaction(reaction.emoji);
+      const currentId = nowPlayingRef.current?.playedItemId;
+      const isForCurrentSong =
+        reaction.playedItemId !== undefined &&
+        currentId !== undefined &&
+        reaction.playedItemId === currentId;
+      const isLegacy = reaction.playedItemId === undefined;
+      if (isForCurrentSong || isLegacy) addFloatingReaction(reaction.emoji);
     },
   });
 
@@ -246,7 +267,10 @@ export function PlayerPanel(): JSX.Element {
   };
 
   const handleReaction = (emoji: string): void => {
-    sendReaction({ emoji });
+    sendReaction({
+      emoji,
+      playedItemId: nowPlaying?.playedItemId,
+    });
   };
 
   const addedByColor = nowPlaying ? identityToColor(nowPlaying.addedBy) : undefined;
@@ -308,19 +332,23 @@ export function PlayerPanel(): JSX.Element {
         </div>
       )}
 
-      {/* Reaction bar — emoji buttons, visible whenever connected */}
+      {/* Reaction bar — emoji buttons and counts for current song */}
       <div className="player-reactions-bar">
-        {REACTION_EMOJIS.map(emoji => (
-          <button
-            key={emoji}
-            className="reaction-btn"
-            onClick={() => handleReaction(emoji)}
-            aria-label={`React with ${emoji}`}
-            title={`Send ${emoji}`}
-          >
-            {emoji}
-          </button>
-        ))}
+        {REACTION_EMOJIS.map(emoji => {
+          const count = currentSongReactionCounts[emoji] ?? 0;
+          return (
+            <button
+              key={emoji}
+              className="reaction-btn"
+              onClick={() => handleReaction(emoji)}
+              aria-label={`React with ${emoji}${count > 0 ? ` (${count})` : ''}`}
+              title={count > 0 ? `${emoji} ${count}` : `Send ${emoji}`}
+            >
+              <span className="reaction-emoji">{emoji}</span>
+              {count > 0 && <span className="reaction-count">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
       <div className="player-controls">

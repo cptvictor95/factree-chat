@@ -20,4 +20,5 @@ export default __t.row({
   startedAt: __t.timestamp().name("started_at"),
   isPlaying: __t.bool().name("is_playing"),
   pausedAtOffset: __t.u64().name("paused_at_offset"),
+  playedItemId: __t.option(__t.u64()).name("played_item_id"),
 });

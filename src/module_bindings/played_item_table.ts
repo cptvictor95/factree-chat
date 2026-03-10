@@ -12,8 +12,9 @@ import {
 
 export default __t.row({
   id: __t.u64().primaryKey(),
-  identity: __t.identity(),
-  emoji: __t.string(),
-  sentAt: __t.timestamp().name("sent_at"),
-  playedItemId: __t.option(__t.u64()).name("played_item_id"),
+  videoId: __t.string().name("video_id"),
+  title: __t.string(),
+  thumbnailUrl: __t.string().name("thumbnail_url"),
+  addedBy: __t.identity().name("added_by"),
+  playedAt: __t.timestamp().name("played_at"),
 });

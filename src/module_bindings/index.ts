@@ -50,6 +50,7 @@ import TogglePlaybackReducer from "./toggle_playback_reducer";
 // Import all table schema definitions
 import MessageRow from "./message_table";
 import NowPlayingRow from "./now_playing_table";
+import PlayedItemRow from "./played_item_table";
 import QueueItemRow from "./queue_item_table";
 import ReactionRow from "./reaction_table";
 import RoomSettingsRow from "./room_settings_table";
@@ -78,6 +79,17 @@ const tablesSchema = __schema({
       { name: 'now_playing_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NowPlayingRow),
+  played_item: __table({
+    name: 'played_item',
+    indexes: [
+      { name: 'id', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'played_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, PlayedItemRow),
   queue_item: __table({
     name: 'queue_item',
     indexes: [

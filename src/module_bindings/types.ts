@@ -27,8 +27,19 @@ export const NowPlaying = __t.object("NowPlaying", {
   startedAt: __t.timestamp(),
   isPlaying: __t.bool(),
   pausedAtOffset: __t.u64(),
+  playedItemId: __t.option(__t.u64()),
 });
 export type NowPlaying = __Infer<typeof NowPlaying>;
+
+export const PlayedItem = __t.object("PlayedItem", {
+  id: __t.u64(),
+  videoId: __t.string(),
+  title: __t.string(),
+  thumbnailUrl: __t.string(),
+  addedBy: __t.identity(),
+  playedAt: __t.timestamp(),
+});
+export type PlayedItem = __Infer<typeof PlayedItem>;
 
 export const QueueItem = __t.object("QueueItem", {
   id: __t.u64(),
@@ -46,6 +57,7 @@ export const Reaction = __t.object("Reaction", {
   identity: __t.identity(),
   emoji: __t.string(),
   sentAt: __t.timestamp(),
+  playedItemId: __t.option(__t.u64()),
 });
 export type Reaction = __Infer<typeof Reaction>;
 

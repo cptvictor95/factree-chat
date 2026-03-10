@@ -464,6 +464,20 @@
   transform: scale(0.9);
 }
 
+.reaction-btn .reaction-emoji {
+  display: inline-block;
+}
+
+.reaction-btn .reaction-count {
+  display: inline-block;
+  min-width: 1.1em;
+  margin-left: 0.2rem;
+  font-size: 0.7em;
+  font-weight: 600;
+  color: var(--text-muted);
+  vertical-align: middle;
+}
+
 .reactions-overlay {
   position: absolute;
   inset: 0;

@@ -12,4 +12,5 @@ import {
 
 export default {
   emoji: __t.string(),
+  playedItemId: __t.option(__t.u64()),
 };

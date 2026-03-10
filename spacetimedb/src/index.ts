@@ -38,6 +38,24 @@ const queue_item = table(
   }
 );
 
+// History of played songs — one row per play. Used to tie reactions to a specific song
+// and for future "history" views. Inserted when a track starts (in tryPlayNext).
+const played_item = table(
+  {
+    name: 'played_item',
+    public: true,
+    indexes: [{ name: 'played_item_played_at', algorithm: 'btree', columns: ['played_at'] }],
+  },
+  {
+    id: t.u64().autoInc().primaryKey(),
+    video_id: t.string(),
+    title: t.string(),
+    thumbnail_url: t.string(),
+    added_by: t.identity(),
+    played_at: t.timestamp(),
+  }
+);
+
 // Singleton table — always 0 or 1 rows. id is always 1.
 // Stores the currently playing video and a server-authoritative started_at timestamp.
 //
@@ -62,6 +80,8 @@ const now_playing = table(
     is_playing: t.bool(),
     // Microseconds of playback elapsed at the moment of pause. 0 when playing.
     paused_at_offset: t.u64(),
+    // Links to played_item for reactions and history. Optional for migration: existing row has none.
+    played_item_id: t.u64().optional(),
   }
 );
 
@@ -74,15 +94,20 @@ const typing = table(
   }
 );
 
-// Ephemeral reactions — inserted on send, clients animate new arrivals.
-// Accumulates over time; for a 2-person room this is negligible.
+// Reactions — optionally tied to a played_item (current song). When played_item_id
+// is set, the reaction is "for that song"; when null, legacy/global (floating only).
 const reaction = table(
-  { name: 'reaction', public: true },
+  {
+    name: 'reaction',
+    public: true,
+    indexes: [{ name: 'reaction_played_item_id', algorithm: 'btree', columns: ['played_item_id'] }],
+  },
   {
     id: t.u64().autoInc().primaryKey(),
     identity: t.identity(),
     emoji: t.string(),
     sent_at: t.timestamp(),
+    played_item_id: t.u64().optional(), // which song this reaction is for
   }
 );
 
@@ -103,6 +128,7 @@ const spacetimedb = schema({
   user,
   message,
   queue_item,
+  played_item,
   now_playing,
   typing,
   reaction,
@@ -129,9 +155,20 @@ function tryPlayNext(ctx: AppCtx): void {
 
   const next = waiting[0];
 
+  // Record this play in history so reactions can be tied to it
+  const playedRow = ctx.db.played_item.insert({
+    id: 0n,
+    video_id: next.video_id,
+    title: next.title,
+    thumbnail_url: next.thumbnail_url,
+    added_by: next.added_by,
+    played_at: ctx.timestamp,
+  });
+
   const nowPlayingRow = {
     id: 1,
     queue_item_id: next.id,
+    played_item_id: playedRow.id,
     video_id: next.video_id,
     title: next.title,
     thumbnail_url: next.thumbnail_url,
@@ -308,12 +345,22 @@ export const stop_typing = spacetimedb.reducer(ctx => {
   }
 });
 
-// Broadcast an emoji reaction. Only predefined emojis are accepted.
-export const send_reaction = spacetimedb.reducer({ emoji: t.string() }, (ctx, { emoji }) => {
-  const allowed = ['❤️', '🔥', '😂', '🎸', '👏', '😍'];
-  if (!allowed.includes(emoji)) throw new SenderError('Invalid emoji');
-  ctx.db.reaction.insert({ id: 0n, identity: ctx.sender, emoji, sent_at: ctx.timestamp });
-});
+// Send an emoji reaction. Optionally tied to the current song (played_item_id).
+// When played_item_id is provided, the reaction is stored for that song (for counts and history).
+export const send_reaction = spacetimedb.reducer(
+  { emoji: t.string(), played_item_id: t.u64().optional() },
+  (ctx, { emoji, played_item_id }) => {
+    const allowed = ['❤️', '🔥', '😂', '🎸', '👏', '😍'];
+    if (!allowed.includes(emoji)) throw new SenderError('Invalid emoji');
+    ctx.db.reaction.insert({
+      id: 0n,
+      identity: ctx.sender,
+      emoji,
+      sent_at: ctx.timestamp,
+      played_item_id: played_item_id ?? undefined,
+    });
+  }
+);
 
 // Soft-clears the chat by recording the current timestamp in room_settings.
 // Clients filter messages to only show those sent after messages_cleared_at.
