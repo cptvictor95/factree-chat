@@ -5,6 +5,30 @@ import { useSpacetimeDB, useReducer } from 'spacetimedb/react';
 import { reducers } from '../../module_bindings';
 import { useYouTubeSync } from '../../hooks/useYouTubeSync';
 
+const VIDEO_OFF_KEY = 'factree-fm-video-off';
+
+function AudioViz({ isPlaying, title }: { isPlaying: boolean; title: string | null }): JSX.Element {
+  return (
+    <>
+      <div className="audio-viz" aria-hidden="true">
+        {[0.08, 0.2, 0, 0.14, 0.3].map((delay, i) => (
+          <div
+            key={i}
+            className={`eq-bar${isPlaying ? ' eq-bar--playing' : ''}`}
+            style={{ animationDelay: `${delay}s` }}
+          />
+        ))}
+      </div>
+      {title && (
+        <div className="audio-viz-meta">
+          <p className="audio-viz-title">{title}</p>
+          <p className="audio-viz-label">audio only</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 const VOLUME_STORAGE_KEY = 'factree-fm-volume';
 const DEFAULT_VOLUME = 50;
 
@@ -55,6 +79,8 @@ export function PlayerPanel(): JSX.Element {
   });
   const [muted, setMuted] = useState(false);
   const preMuteVolumeRef = useRef<number>(DEFAULT_VOLUME);
+
+  const [videoOff, setVideoOff] = useState(() => localStorage.getItem(VIDEO_OFF_KEY) === 'true');
 
   // Progress bar state: 0–1 fraction and total duration in seconds
   const [progress, setProgress] = useState(0);
@@ -193,21 +219,32 @@ export function PlayerPanel(): JSX.Element {
     togglePlayback();
   };
 
+  const handleVideoToggle = (): void => {
+    const next = !videoOff;
+    setVideoOff(next);
+    localStorage.setItem(VIDEO_OFF_KEY, String(next));
+  };
+
   const addedByName = nowPlaying?.addedBy.toHexString().substring(0, 8) ?? '';
   const elapsedSeconds = duration > 0 ? progress * duration : 0;
 
   return (
     <div className="player-panel">
-      <div className="player-embed-wrapper">
-        {!nowPlaying && (
+      <div className={`player-embed-wrapper${videoOff ? ' player-embed-wrapper--audio-only' : ''}`}>
+        {!videoOff && !nowPlaying && (
           <div className="player-idle">
             <div className="vinyl-record" aria-hidden="true" />
             <p>Queue is empty</p>
             <p className="player-idle-hint">Add a YouTube URL below to start the room</p>
           </div>
         )}
+        {videoOff && (
+          <AudioViz isPlaying={nowPlaying?.isPlaying ?? false} title={nowPlaying?.title ?? null} />
+        )}
         {/* wrapperRef div is always in the DOM — no display toggling.
-            YouTube creates its <iframe> inside here, outside React's tree. */}
+            YouTube creates its <iframe> inside here, outside React's tree.
+            In audio-only mode the embed is rendered at 1px via CSS but stays
+            in the DOM so YouTube keeps the audio stream alive. */}
         <div ref={wrapperRef} className="player-embed" />
       </div>
 
@@ -286,6 +323,15 @@ export function PlayerPanel(): JSX.Element {
               </button>
             </>
           )}
+
+          <button
+            className={`video-toggle-btn${videoOff ? ' video-toggle-btn--active' : ''}`}
+            onClick={handleVideoToggle}
+            aria-label={videoOff ? 'Show video' : 'Hide video'}
+            title={videoOff ? 'Show video' : 'Audio only (saves data)'}
+          >
+            {videoOff ? '[video]' : '[audio]'}
+          </button>
 
           <div className="volume-control">
             <button
