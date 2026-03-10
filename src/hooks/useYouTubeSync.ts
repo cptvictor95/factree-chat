@@ -83,6 +83,51 @@ export function useYouTubeSync(
     }
   }, [nowPlaying, playerRef, playerReady]);
 
+  // When the user returns to the app (or we mount after reconnect), sync playback to
+  // server time: seek to (now - started_at) and play. The browser often pauses the
+  // iframe when backgrounded, so the song appears stuck; this catches up to real time.
+  const visibilitySyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const syncToServerTime = (): void => {
+      const current = nowPlayingRef.current;
+      if (!current?.isPlaying) return;
+      const player = playerRef.current;
+      if (!player || !playerReady) return;
+      const elapsedSeconds = (Date.now() - current.startedAt.toDate().getTime()) / 1000;
+      player.seekTo(Math.max(0, elapsedSeconds), true);
+      player.playVideo();
+    };
+
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      if (visibilitySyncTimeoutRef.current) clearTimeout(visibilitySyncTimeoutRef.current);
+      // Defer so the tab has a tick to resume; then sync to server position
+      visibilitySyncTimeoutRef.current = setTimeout(syncToServerTime, 50);
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // If we're already visible with a playing track (e.g. just mounted after reconnect),
+    // sync immediately so we don't show a stale timestamp
+    if (
+      document.visibilityState === 'visible' &&
+      nowPlaying?.isPlaying &&
+      playerRef.current &&
+      playerReady
+    ) {
+      syncToServerTime();
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (visibilitySyncTimeoutRef.current) {
+        clearTimeout(visibilitySyncTimeoutRef.current);
+        visibilitySyncTimeoutRef.current = null;
+      }
+    };
+  }, [playerRef, playerReady, nowPlaying]);
+
   const onPlayerStateChange = useCallback((event: YT.OnStateChangeEvent) => {
     if (event.data !== YT.PlayerState.ENDED) return;
 

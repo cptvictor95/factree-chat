@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSpacetimeDB, useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '@/module_bindings';
+import { useBackgroundAudioKeepAlive } from '@/hooks/useBackgroundAudioKeepAlive';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useYouTubeSync } from '@/hooks/useYouTubeSync';
 import { DEFAULTS, STORAGE_KEYS } from '@/constants';
@@ -256,6 +257,9 @@ export function PlayerPanel(): JSX.Element {
     onPlayPause: handlePlayPause,
     onSkip: handleSkip,
   });
+
+  // Best-effort: keep a silent audio session so the browser may not pause when app is backgrounded
+  useBackgroundAudioKeepAlive(Boolean(nowPlaying?.isPlaying));
 
   const addedByColor = nowPlaying ? identityToColor(nowPlaying.addedBy) : undefined;
   const addedByName = nowPlaying

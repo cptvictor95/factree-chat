@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { useTable, useSpacetimeDB } from 'spacetimedb/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,14 +8,36 @@ import { AppHeader, ConnectingScreen, JoinSplash, MobileTabs } from '@/component
 import { ChatPanel } from '@/components/chat';
 import { PlayerPanel } from '@/components/player';
 import { QueuePanel } from '@/components/queue';
+import { useReconnect } from '@/contexts/ReconnectContext';
 import './App.css';
 
 function App(): JSX.Element {
   const { isActive: connected } = useSpacetimeDB();
+  const { reconnect } = useReconnect();
+  const reconnectingRef = useRef(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('queue');
   const [onlineUsers] = useTable(tables.user.where(r => r.online.eq(true)));
   const [queueItems] = useTable(tables.queue_item);
+
+  // When the user returns to the app and we're disconnected (e.g. WebSocket dropped in background),
+  // trigger a reconnect so the chat session and messages/reactions come back without a full refresh.
+  useEffect(() => {
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState !== 'visible') return;
+      if (connected) return;
+      if (reconnectingRef.current) return;
+      reconnectingRef.current = true;
+      reconnect();
+      // Allow another reconnect after a short delay (e.g. if first attempt fails)
+      setTimeout(() => {
+        reconnectingRef.current = false;
+      }, 3000);
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [connected, reconnect]);
 
   if (!connected) {
     return <ConnectingScreen />;
