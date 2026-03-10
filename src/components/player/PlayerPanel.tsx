@@ -1,0 +1,211 @@
+import { useEffect, useRef, useState } from 'react';
+import type { JSX } from 'react';
+import { useSpacetimeDB, useReducer } from 'spacetimedb/react';
+import { reducers } from '../../module_bindings';
+import { useYouTubeSync } from '../../hooks/useYouTubeSync';
+
+const VOLUME_STORAGE_KEY = 'factree-fm-volume';
+const DEFAULT_VOLUME = 50;
+
+function loadYouTubeAPI(): Promise<void> {
+  return new Promise(resolve => {
+    if (window.YT?.Player) {
+      resolve();
+      return;
+    }
+
+    if (!document.getElementById('yt-api-script')) {
+      const script = document.createElement('script');
+      script.id = 'yt-api-script';
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    }
+
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      resolve();
+    };
+  });
+}
+
+function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }): JSX.Element {
+  if (muted || volume === 0) return <span className="volume-icon">🔇</span>;
+  if (volume < 40) return <span className="volume-icon">🔈</span>;
+  if (volume < 70) return <span className="volume-icon">🔉</span>;
+  return <span className="volume-icon">🔊</span>;
+}
+
+export function PlayerPanel(): JSX.Element {
+  // The wrapper div is React-controlled. We manually append the YT target element
+  // inside it so YouTube can replace it with an iframe without React interfering.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YT.Player | null>(null);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
+    return saved !== null ? parseInt(saved, 10) : DEFAULT_VOLUME;
+  });
+  const [muted, setMuted] = useState(false);
+  // Stores the volume before the mute button is pressed so it can be restored on unmute
+  const preMuteVolumeRef = useRef<number>(DEFAULT_VOLUME);
+
+  const { nowPlaying, onPlayerStateChange } = useYouTubeSync(playerRef, playerReady);
+  const { identity } = useSpacetimeDB();
+  const playNext = useReducer(reducers.playNext);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    let cancelled = false;
+
+    loadYouTubeAPI().then(() => {
+      if (cancelled || playerRef.current) return;
+
+      // Create the target element manually — React never knows about it.
+      // YouTube replaces this div with an <iframe>. Since it's outside React's
+      // virtual DOM tree, there's no reconciliation conflict.
+      const playerTarget = document.createElement('div');
+      wrapper.appendChild(playerTarget);
+
+      playerRef.current = new YT.Player(playerTarget, {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          rel: 0,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: () => {
+            const savedVolume = parseInt(
+              localStorage.getItem(VOLUME_STORAGE_KEY) ?? String(DEFAULT_VOLUME),
+              10
+            );
+            playerRef.current?.setVolume(savedVolume);
+            setPlayerReady(true);
+          },
+          onStateChange: onPlayerStateChange,
+        },
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // onPlayerStateChange is stable (useCallback with no deps in the hook)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const value = parseInt(e.target.value, 10);
+    setVolume(value);
+    localStorage.setItem(VOLUME_STORAGE_KEY, String(value));
+
+    if (value === 0) {
+      playerRef.current?.mute();
+      setMuted(true);
+    } else {
+      playerRef.current?.unMute();
+      playerRef.current?.setVolume(value);
+      setMuted(false);
+    }
+  };
+
+  const handleMuteToggle = (): void => {
+    if (!playerRef.current) return;
+    if (muted) {
+      const restore = preMuteVolumeRef.current > 0 ? preMuteVolumeRef.current : DEFAULT_VOLUME;
+      playerRef.current.unMute();
+      playerRef.current.setVolume(restore);
+      setVolume(restore);
+      setMuted(false);
+    } else {
+      preMuteVolumeRef.current = volume > 0 ? volume : DEFAULT_VOLUME;
+      playerRef.current.mute();
+      setMuted(true);
+    }
+  };
+
+  const handleSkip = (): void => {
+    if (!nowPlaying) return;
+    playNext({ queueItemId: nowPlaying.queueItemId });
+  };
+
+  const addedByName = nowPlaying?.addedBy.toHexString().substring(0, 8) ?? '';
+
+  return (
+    <div className="player-panel">
+      <div className="player-embed-wrapper">
+        {!nowPlaying && (
+          <div className="player-idle">
+            <p>Queue is empty</p>
+            <p className="player-idle-hint">Add a YouTube URL below to start the room</p>
+          </div>
+        )}
+        {/* wrapperRef div is always in the DOM — no display toggling.
+            YouTube creates its <iframe> inside here, outside React's tree. */}
+        <div ref={wrapperRef} className="player-embed" />
+      </div>
+
+      <div className="player-controls">
+        {nowPlaying ? (
+          <div className="now-playing-info">
+            <img
+              src={nowPlaying.thumbnailUrl}
+              alt={nowPlaying.title}
+              className="now-playing-thumb"
+            />
+            <div className="now-playing-meta">
+              <p className="now-playing-title">{nowPlaying.title}</p>
+              <p className="now-playing-by">
+                added by{' '}
+                <span className="now-playing-username">
+                  {identity && nowPlaying.addedBy.isEqual(identity)
+                    ? 'you'
+                    : addedByName}
+                </span>
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="now-playing-empty" />
+        )}
+
+        {nowPlaying && (
+          <button
+            className="skip-btn"
+            onClick={handleSkip}
+            aria-label="Skip song"
+            title="Skip to next song"
+          >
+            Skip ⏭
+          </button>
+        )}
+
+        <div className="volume-control">
+          <button
+            className="volume-mute-btn"
+            onClick={handleMuteToggle}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            title={muted ? 'Unmute' : 'Mute'}
+          >
+            <VolumeIcon volume={volume} muted={muted} />
+          </button>
+          <input
+            type="range"
+            className="volume-slider"
+            min={0}
+            max={100}
+            value={muted ? 0 : volume}
+            onChange={handleVolumeChange}
+            aria-label="Volume"
+          />
+          <span className="volume-value">{muted ? 0 : volume}</span>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,8 @@
+{
+  "dev": {
+    "run": "yarn dev"
+  },
+  "module-path": "./spacetimedb",
+  "server": "maincloud",
+  "database": "factree-chat-o6ykh"
+}
