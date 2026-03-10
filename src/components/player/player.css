@@ -429,3 +429,58 @@
   min-width: 2ch;
   text-align: right;
 }
+
+.player-reactions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.reaction-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.25rem 0.35rem;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reaction-btn:hover {
+  transform: scale(1.2);
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.reaction-btn:active {
+  transform: scale(0.9);
+}
+
+.reactions-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.floating-reaction {
+  position: absolute;
+  bottom: 10%;
+  font-size: 2rem;
+  line-height: 1;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+@media (max-width: 768px) {
+  .reaction-btn {
+    font-size: 1.5rem;
+    padding: 0.3rem 0.4rem;
+  }
+}

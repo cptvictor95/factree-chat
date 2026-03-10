@@ -5,6 +5,7 @@ import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { tables, reducers } from '@/module_bindings';
 import type * as Types from '@/module_bindings/types';
 import { AddToQueueForm } from './AddToQueueForm';
+import { identityToColor, identityToShortId } from '@/utils/identity';
 import './queue.css';
 
 const itemVariants = {
@@ -32,8 +33,8 @@ function QueueItemRow({ item, isOwn, onRemove }: QueueItemRowProps): JSX.Element
       <img src={item.thumbnailUrl} alt={item.title} className="queue-item-thumb" />
       <div className="queue-item-meta">
         <p className="queue-item-title">{item.title}</p>
-        <p className="queue-item-by">
-          {isOwn ? 'you' : item.addedBy.toHexString().substring(0, 8)}
+        <p className="queue-item-by" style={{ color: identityToColor(item.addedBy) }}>
+          {isOwn ? 'you' : identityToShortId(item.addedBy)}
         </p>
       </div>
       <button
