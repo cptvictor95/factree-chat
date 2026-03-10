@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { JSX } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { Identity, Timestamp } from 'spacetimedb';
 import { tables, reducers } from '../../module_bindings';
@@ -17,6 +18,12 @@ interface PrettyMessage {
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+const messageVariants = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.18, ease: 'easeOut' as const } },
+  exit: { opacity: 0, transition: { duration: 0.12 } },
+};
 
 export function ChatPanel(): JSX.Element {
   const [newMessage, setNewMessage] = useState('');
@@ -165,31 +172,44 @@ export function ChatPanel(): JSX.Element {
         {prettyMessages.length === 0 && (
           <p className="chat-empty">No messages yet. Say hello!</p>
         )}
-        {prettyMessages.map(msg => {
-          const timeString = formatTime(msg.sent.toDate());
+        <AnimatePresence initial={false}>
+          {prettyMessages.map(msg => {
+            const timeString = formatTime(msg.sent.toDate());
 
-          if (msg.kind === 'system') {
+            if (msg.kind === 'system') {
+              return (
+                <motion.div
+                  key={msg.key}
+                  className="chat-message chat-message--system"
+                  variants={messageVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <span className="chat-message-text">{msg.text}</span>
+                  <span className="chat-message-time">{timeString}</span>
+                </motion.div>
+              );
+            }
+
             return (
-              <div key={msg.key} className="chat-message chat-message--system">
-                <span className="chat-message-text">{msg.text}</span>
-                <span className="chat-message-time">{timeString}</span>
-              </div>
+              <motion.div
+                key={msg.key}
+                className={`chat-message chat-message--user${msg.isOwn ? ' chat-message--own' : ''}`}
+                variants={messageVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <div className="chat-message-header">
+                  <span className="chat-message-sender">{msg.senderName}</span>
+                  <span className="chat-message-time">{timeString}</span>
+                </div>
+                <p className="chat-message-text">{msg.text}</p>
+              </motion.div>
             );
-          }
-
-          return (
-            <div
-              key={msg.key}
-              className={`chat-message chat-message--user${msg.isOwn ? ' chat-message--own' : ''}`}
-            >
-              <div className="chat-message-header">
-                <span className="chat-message-sender">{msg.senderName}</span>
-                <span className="chat-message-time">{timeString}</span>
-              </div>
-              <p className="chat-message-text">{msg.text}</p>
-            </div>
-          );
-        })}
+          })}
+        </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
 
@@ -199,7 +219,7 @@ export function ChatPanel(): JSX.Element {
           className="chat-input"
           value={newMessage}
           onChange={e => setNewMessage(e.target.value)}
-          placeholder="Say something..."
+          placeholder="Say something…"
           aria-label="message input"
         />
         <button
