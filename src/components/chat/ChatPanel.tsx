@@ -37,6 +37,8 @@ function TypingDots(): JSX.Element {
   );
 }
 
+const NAME_KEY = 'factree-fm-username';
+
 export function ChatPanel(): JSX.Element {
   const [newMessage, setNewMessage] = useState('');
   const [newName, setNewName] = useState('');
@@ -95,6 +97,17 @@ export function ChatPanel(): JSX.Element {
   );
 
   const displayName = currentUser?.name ?? identity?.toHexString().substring(0, 8) ?? '';
+
+  // Auto-restore saved name from localStorage when the user row has no name yet.
+  // Covers the case where the DB was wiped during development or a new device is used.
+  // Runs once when currentUser first becomes available (keyed on identity hex).
+  useEffect(() => {
+    if (!currentUser || currentUser.name) return;
+    const saved = localStorage.getItem(NAME_KEY);
+    if (saved) setName({ name: saved });
+    // setName is a stable reducer reference — safe to omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.identity.toHexString()]);
 
   // Who is typing right now (excluding ourselves)?
   const typingOthers = useMemo(() => {
@@ -172,8 +185,11 @@ export function ChatPanel(): JSX.Element {
 
   const handleSubmitName = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
+    const trimmed = newName.trim();
+    if (!trimmed) return;
     setIsEditingName(false);
-    setName({ name: newName });
+    setName({ name: trimmed });
+    localStorage.setItem(NAME_KEY, trimmed);
   };
 
   const handleSubmitMessage = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
