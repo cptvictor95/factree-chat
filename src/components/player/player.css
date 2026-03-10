@@ -447,7 +447,10 @@
   line-height: 1;
   padding: 0.25rem 0.35rem;
   cursor: pointer;
-  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  transition:
+    transform 0.1s,
+    border-color 0.15s,
+    background 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 

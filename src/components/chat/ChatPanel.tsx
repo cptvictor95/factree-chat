@@ -39,7 +39,6 @@ function TypingDots(): JSX.Element {
   );
 }
 
-
 export function ChatPanel(): JSX.Element {
   const [newMessage, setNewMessage] = useState('');
   const [newName, setNewName] = useState('');
