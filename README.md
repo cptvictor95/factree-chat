@@ -77,6 +77,13 @@ Locally (`yarn dev`), `/api/search` is not available unless you run `vercel dev`
 - **See why search fails:** The Search tab shows the error message from the API (e.g. "Search not configured", or YouTube’s message if the key is invalid or quota is exceeded). For more detail: Vercel → Project → **Logs** or **Functions** → open the `/api/search` run and check the server-side error.
 - **Test locally:** Run `vercel dev` (with `YOUTUBE_API_KEY` in `.env.local`) so `/api/search` is available; use the Search tab and click **Search** to trigger the request. In the browser Network tab, inspect the `/api/search?q=...` response status and body to debug.
 
+#### "Requests from referer &lt;empty&gt; are blocked"
+
+Search runs on the **server** (Vercel calls the YouTube API), so the request to Google has no browser Referer. If your API key is restricted to **HTTP referrers (web sites)**, Google blocks it.
+
+- **Recommended:** In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → your API key, set **Application restrictions** to **None**. Restrict the key with **API restrictions** to **YouTube Data API v3** only (so the key can’t be abused for other APIs).
+- **Alternatively:** Keep HTTP referrer restrictions and add your production origin (e.g. `https://your-app.vercel.app/*`). The app sends that origin as a `Referer` header when calling the YouTube API so the request may be accepted.
+
 ### Publishing the SpacetimeDB module
 
 ```bash
