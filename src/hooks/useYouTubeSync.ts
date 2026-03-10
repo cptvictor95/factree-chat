@@ -83,40 +83,65 @@ export function useYouTubeSync(
     }
   }, [nowPlaying, playerRef, playerReady]);
 
-  // When the user returns to the app (or we mount after reconnect), sync playback to
-  // server time: seek to (now - started_at) and play. The browser often pauses the
-  // iframe when backgrounded, so the song appears stuck; this catches up to real time.
+  // Background-return detection:
+  // The YouTube iframe self-pauses when visibilitychange fires inside it (cross-origin,
+  // YouTube policy). We cannot prevent that pause. Instead we detect "just returned"
+  // and resume with server-time drift correction via two complementary paths:
+  //
+  //  Path A (PAUSED event): YouTube fires YT.PlayerState.PAUSED after self-pausing.
+  //    If that happens while justReturnedFromBackground is true and the server says
+  //    isPlaying, we seek to server time and call playVideo() immediately.
+  //    This is the reliable path — we react to the actual pause, no timing guessing.
+  //
+  //  Path B (deferred timeout): We schedule a 400ms fallback seekTo+playVideo.
+  //    This covers the case where the PAUSED event fires before our listener was set,
+  //    or on reconnect where the player just mounted with a stale position.
+  //
+  // The 400ms delay gives YouTube's internal pause cycle time to complete, so our
+  // playVideo() call arrives after YouTube is done pausing (not mid-cycle).
+
   const visibilitySyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justReturnedFromBackgroundRef = useRef(false);
+  const backgroundReturnClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markReturnedFromBackground = useCallback((): void => {
+    justReturnedFromBackgroundRef.current = true;
+    if (backgroundReturnClearTimerRef.current) clearTimeout(backgroundReturnClearTimerRef.current);
+    // Clear the flag after 2s — any PAUSED event after that is a real user action
+    backgroundReturnClearTimerRef.current = setTimeout(() => {
+      justReturnedFromBackgroundRef.current = false;
+    }, 2000);
+  }, []);
+
+  const seekAndPlay = useCallback((): void => {
+    if (visibilitySyncTimeoutRef.current) {
+      clearTimeout(visibilitySyncTimeoutRef.current);
+      visibilitySyncTimeoutRef.current = null;
+    }
+    const current = nowPlayingRef.current;
+    if (!current?.isPlaying) return;
+    const player = playerRef.current;
+    if (!player) return;
+    const elapsedSeconds = (Date.now() - current.startedAt.toDate().getTime()) / 1000;
+    player.seekTo(Math.max(0, elapsedSeconds), true);
+    player.playVideo();
+  }, [playerRef]);
 
   useEffect(() => {
-    const syncToServerTime = (): void => {
-      const current = nowPlayingRef.current;
-      if (!current?.isPlaying) return;
-      const player = playerRef.current;
-      if (!player || !playerReady) return;
-      const elapsedSeconds = (Date.now() - current.startedAt.toDate().getTime()) / 1000;
-      player.seekTo(Math.max(0, elapsedSeconds), true);
-      player.playVideo();
-    };
-
     const onVisibilityChange = (): void => {
       if (document.visibilityState !== 'visible') return;
+      markReturnedFromBackground();
       if (visibilitySyncTimeoutRef.current) clearTimeout(visibilitySyncTimeoutRef.current);
-      // Defer so the tab has a tick to resume; then sync to server position
-      visibilitySyncTimeoutRef.current = setTimeout(syncToServerTime, 50);
+      // Path B: deferred fallback — 400ms to allow YouTube's iframe to finish its own pause cycle
+      visibilitySyncTimeoutRef.current = setTimeout(seekAndPlay, 400);
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
 
-    // If we're already visible with a playing track (e.g. just mounted after reconnect),
-    // sync immediately so we don't show a stale timestamp
-    if (
-      document.visibilityState === 'visible' &&
-      nowPlaying?.isPlaying &&
-      playerRef.current &&
-      playerReady
-    ) {
-      syncToServerTime();
+    // On mount while visible (e.g. after reconnect): treat as "just returned" and sync
+    if (document.visibilityState === 'visible' && nowPlaying?.isPlaying && playerRef.current && playerReady) {
+      markReturnedFromBackground();
+      seekAndPlay();
     }
 
     return () => {
@@ -125,17 +150,28 @@ export function useYouTubeSync(
         clearTimeout(visibilitySyncTimeoutRef.current);
         visibilitySyncTimeoutRef.current = null;
       }
+      if (backgroundReturnClearTimerRef.current) {
+        clearTimeout(backgroundReturnClearTimerRef.current);
+        backgroundReturnClearTimerRef.current = null;
+      }
     };
-  }, [playerRef, playerReady, nowPlaying]);
+  }, [playerRef, playerReady, nowPlaying, markReturnedFromBackground, seekAndPlay]);
 
   const onPlayerStateChange = useCallback((event: YT.OnStateChangeEvent) => {
-    if (event.data !== YT.PlayerState.ENDED) return;
+    if (event.data === YT.PlayerState.ENDED) {
+      const current = nowPlayingRef.current;
+      if (!current) return;
+      playNextRef.current({ queueItemId: current.queueItemId });
+      return;
+    }
 
-    const current = nowPlayingRef.current;
-    if (!current) return;
-
-    playNextRef.current({ queueItemId: current.queueItemId });
-  }, []);
+    // Path A: YouTube self-paused right after we returned from background → auto-resume
+    if (event.data === YT.PlayerState.PAUSED && justReturnedFromBackgroundRef.current) {
+      const current = nowPlayingRef.current;
+      if (!current?.isPlaying) return;
+      seekAndPlay();
+    }
+  }, [seekAndPlay]);
 
   return { nowPlaying, onPlayerStateChange };
 }
