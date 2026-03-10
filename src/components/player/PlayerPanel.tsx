@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSpacetimeDB, useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '@/module_bindings';
+import { useMediaSession } from '@/hooks/useMediaSession';
 import { useYouTubeSync } from '@/hooks/useYouTubeSync';
 import { DEFAULTS, STORAGE_KEYS } from '@/constants';
 import { identityToColor, identityToShortId } from '@/utils/identity';
@@ -248,6 +249,13 @@ export function PlayerPanel(): JSX.Element {
   const handleReaction = (emoji: string): void => {
     sendReaction({ emoji });
   };
+
+  useMediaSession({
+    nowPlaying,
+    isPlaying: nowPlaying?.isPlaying ?? false,
+    onPlayPause: handlePlayPause,
+    onSkip: handleSkip,
+  });
 
   const addedByColor = nowPlaying ? identityToColor(nowPlaying.addedBy) : undefined;
   const addedByName = nowPlaying

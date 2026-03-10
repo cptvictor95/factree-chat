@@ -84,6 +84,14 @@ Search runs on the **server** (Vercel calls the YouTube API), so the request to 
 - **Recommended:** In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → your API key, set **Application restrictions** to **None**. Restrict the key with **API restrictions** to **YouTube Data API v3** only (so the key can’t be abused for other APIs).
 - **Alternatively:** Keep HTTP referrer restrictions and add your production origin (e.g. `https://your-app.vercel.app/*`). The app sends that origin as a `Referer` header when calling the YouTube API so the request may be accepted.
 
+#### Listen on your phone (background / lock screen)
+
+To listen while switching apps or with the screen off:
+
+1. **Add to Home Screen** — On your phone, open factree.fm in the browser, then use “Add to Home Screen” (Chrome/Safari menu). This installs the app as a PWA.
+2. **Android** — With the PWA installed, playback can continue in the background. The lock screen and notification show the current track and play/pause/skip (Media Session API).
+3. **iOS** — Behavior depends on the OS version. Install via “Add to Home Screen” and use the lock screen controls. If audio stops when you leave the app, try opening the site in Safari (not standalone) with “minimal-ui” or keep the tab in the background; iOS has stricter limits for web background audio.
+
 ### Publishing the SpacetimeDB module
 
 ```bash

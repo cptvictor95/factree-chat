@@ -1,0 +1,18 @@
+{
+  "name": "factree.fm",
+  "short_name": "factree.fm",
+  "description": "Listen to YouTube in sync with friends. One room, one queue.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#2D2A2B",
+  "background_color": "#1a1919",
+  "icons": [
+    {
+      "src": "/logo-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
