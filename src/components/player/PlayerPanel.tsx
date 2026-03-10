@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { JSX } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSpacetimeDB, useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../../module_bindings';
-import { useYouTubeSync } from '../../hooks/useYouTubeSync';
-import { identityToColor, identityToShortId } from '../../utils/identity';
-
-const VIDEO_OFF_KEY = 'factree-fm-video-off';
+import { reducers, tables } from '@/module_bindings';
+import { useYouTubeSync } from '@/hooks/useYouTubeSync';
+import { DEFAULTS, STORAGE_KEYS } from '@/constants';
+import { identityToColor, identityToShortId } from '@/utils/identity';
+import './player.css';
 
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🎸', '👏', '😍'] as const;
 
@@ -37,9 +37,6 @@ function AudioViz({ isPlaying, title }: { isPlaying: boolean; title: string | nu
     </>
   );
 }
-
-const VOLUME_STORAGE_KEY = 'factree-fm-volume';
-const DEFAULT_VOLUME = 50;
 
 function loadYouTubeAPI(): Promise<void> {
   return new Promise(resolve => {
@@ -81,13 +78,15 @@ export function PlayerPanel(): JSX.Element {
   const playerRef = useRef<YT.Player | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
   const [volume, setVolume] = useState(() => {
-    const saved = localStorage.getItem(VOLUME_STORAGE_KEY);
-    return saved !== null ? parseInt(saved, 10) : DEFAULT_VOLUME;
+    const saved = localStorage.getItem(STORAGE_KEYS.volume);
+    return saved !== null ? parseInt(saved, 10) : DEFAULTS.volume;
   });
   const [muted, setMuted] = useState(false);
-  const preMuteVolumeRef = useRef<number>(DEFAULT_VOLUME);
+  const preMuteVolumeRef = useRef<number>(DEFAULTS.volume);
 
-  const [videoOff, setVideoOff] = useState(() => localStorage.getItem(VIDEO_OFF_KEY) === 'true');
+  const [videoOff, setVideoOff] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.videoOff) === 'true'
+  );
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -145,7 +144,7 @@ export function PlayerPanel(): JSX.Element {
         events: {
           onReady: () => {
             const savedVolume = parseInt(
-              localStorage.getItem(VOLUME_STORAGE_KEY) ?? String(DEFAULT_VOLUME),
+              localStorage.getItem(STORAGE_KEYS.volume) ?? String(DEFAULTS.volume),
               10
             );
             playerRef.current?.setVolume(savedVolume);
@@ -204,7 +203,7 @@ export function PlayerPanel(): JSX.Element {
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = parseInt(e.target.value, 10);
     setVolume(value);
-    localStorage.setItem(VOLUME_STORAGE_KEY, String(value));
+    localStorage.setItem(STORAGE_KEYS.volume, String(value));
 
     if (value === 0) {
       playerRef.current?.mute();
@@ -219,13 +218,13 @@ export function PlayerPanel(): JSX.Element {
   const handleMuteToggle = (): void => {
     if (!playerRef.current) return;
     if (muted) {
-      const restore = preMuteVolumeRef.current > 0 ? preMuteVolumeRef.current : DEFAULT_VOLUME;
+      const restore = preMuteVolumeRef.current > 0 ? preMuteVolumeRef.current : DEFAULTS.volume;
       playerRef.current.unMute();
       playerRef.current.setVolume(restore);
       setVolume(restore);
       setMuted(false);
     } else {
-      preMuteVolumeRef.current = volume > 0 ? volume : DEFAULT_VOLUME;
+      preMuteVolumeRef.current = volume > 0 ? volume : DEFAULTS.volume;
       playerRef.current.mute();
       setMuted(true);
     }
@@ -243,7 +242,7 @@ export function PlayerPanel(): JSX.Element {
   const handleVideoToggle = (): void => {
     const next = !videoOff;
     setVideoOff(next);
-    localStorage.setItem(VIDEO_OFF_KEY, String(next));
+    localStorage.setItem(STORAGE_KEYS.videoOff, String(next));
   };
 
   const handleReaction = (emoji: string): void => {

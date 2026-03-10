@@ -3,9 +3,11 @@ import type { JSX } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTable, useReducer, useSpacetimeDB } from 'spacetimedb/react';
 import { Identity, Timestamp } from 'spacetimedb';
-import { tables, reducers } from '../../module_bindings';
-import type * as Types from '../../module_bindings/types';
-import { identityToColor, identityToShortId } from '../../utils/identity';
+import { tables, reducers } from '@/module_bindings';
+import type * as Types from '@/module_bindings/types';
+import { identityToColor, identityToShortId } from '@/utils/identity';
+import { STORAGE_KEYS } from '@/constants';
+import './chat.css';
 
 interface PrettyMessage {
   key: string;
@@ -36,8 +38,6 @@ function TypingDots(): JSX.Element {
     </span>
   );
 }
-
-const NAME_KEY = 'factree-fm-username';
 
 export function ChatPanel(): JSX.Element {
   const [newMessage, setNewMessage] = useState('');
@@ -103,7 +103,7 @@ export function ChatPanel(): JSX.Element {
   // Runs once when currentUser first becomes available (keyed on identity hex).
   useEffect(() => {
     if (!currentUser || currentUser.name) return;
-    const saved = localStorage.getItem(NAME_KEY);
+    const saved = localStorage.getItem(STORAGE_KEYS.username);
     if (saved) setName({ name: saved });
     // setName is a stable reducer reference — safe to omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,7 +189,7 @@ export function ChatPanel(): JSX.Element {
     if (!trimmed) return;
     setIsEditingName(false);
     setName({ name: trimmed });
-    localStorage.setItem(NAME_KEY, trimmed);
+    localStorage.setItem(STORAGE_KEYS.username, trimmed);
   };
 
   const handleSubmitMessage = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
