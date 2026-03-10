@@ -21,8 +21,7 @@ export async function searchYouTube(query: string): Promise<YouTubeSearchResult[
       error?: string;
       hint?: string;
     };
-    const message =
-      body?.error ?? `Search failed (${response.status})`;
+    const message = body?.error ?? `Search failed (${response.status})`;
     const withHint = body?.hint ? `${message} — ${body.hint}` : message;
     throw new Error(withHint);
   }

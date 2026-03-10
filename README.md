@@ -11,13 +11,13 @@ A synchronized music listening room built with **SpacetimeDB**. Everyone in the 
 
 ## Tech stack
 
-| Layer            | Technology                                                 |
-| ---------------- | ---------------------------------------------------------- |
-| Frontend         | React + TypeScript + Vite                                  |
-| Realtime backend | [SpacetimeDB](https://spacetimedb.com) (TypeScript module) |
-| Video            | YouTube IFrame API                                         |
+| Layer            | Technology                                                        |
+| ---------------- | ----------------------------------------------------------------- |
+| Frontend         | React + TypeScript + Vite                                         |
+| Realtime backend | [SpacetimeDB](https://spacetimedb.com) (TypeScript module)        |
+| Video            | YouTube IFrame API                                                |
 | Video metadata   | YouTube oEmbed (URL mode); YouTube Data API v3 (search, optional) |
-| Styling          | Plain CSS with custom properties                           |
+| Styling          | Plain CSS with custom properties                                  |
 
 ## Project structure
 
