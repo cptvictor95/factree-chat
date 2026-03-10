@@ -74,8 +74,7 @@ export function ChatPanel(): JSX.Element {
     [identity, onlineUsers]
   );
 
-  const displayName =
-    currentUser?.name ?? identity?.toHexString().substring(0, 8) ?? '';
+  const displayName = currentUser?.name ?? identity?.toHexString().substring(0, 8) ?? '';
 
   // Merge DB messages + local system messages, sort once, and map to display shape.
   // useMemo prevents re-sorting on every render when unrelated state changes.
@@ -84,9 +83,7 @@ export function ChatPanel(): JSX.Element {
       .sort((a, b) => (a.sent.toDate() > b.sent.toDate() ? 1 : -1))
       .map(msg => {
         const isSystem = Identity.zero().isEqual(msg.sender);
-        const sender = isSystem
-          ? null
-          : onlineUsers.find(u => u.identity.isEqual(msg.sender));
+        const sender = isSystem ? null : onlineUsers.find(u => u.identity.isEqual(msg.sender));
         return {
           // Stable key: sender hex + microsecond timestamp avoids index-based keys
           key: `${msg.sender.toHexString()}-${msg.sent.toDate().getTime()}`,
@@ -149,7 +146,9 @@ export function ChatPanel(): JSX.Element {
                 className="chat-name-input"
                 placeholder="Enter name..."
               />
-              <button type="submit" className="chat-name-save">✓</button>
+              <button type="submit" className="chat-name-save">
+                ✓
+              </button>
             </form>
           )}
         </div>
@@ -169,9 +168,7 @@ export function ChatPanel(): JSX.Element {
       </div>
 
       <div className="chat-messages">
-        {prettyMessages.length === 0 && (
-          <p className="chat-empty">No messages yet. Say hello!</p>
-        )}
+        {prettyMessages.length === 0 && <p className="chat-empty">No messages yet. Say hello!</p>}
         <AnimatePresence initial={false}>
           {prettyMessages.map(msg => {
             const timeString = formatTime(msg.sent.toDate());
@@ -222,11 +219,7 @@ export function ChatPanel(): JSX.Element {
           placeholder="Say something…"
           aria-label="message input"
         />
-        <button
-          type="submit"
-          className="chat-send-btn"
-          disabled={!newMessage.trim()}
-        >
+        <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
           Send
         </button>
       </form>

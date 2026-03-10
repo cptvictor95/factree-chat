@@ -22,6 +22,7 @@
 > Make the queue feel collaborative — both of you should be able to manage it freely.
 
 ### 2.1 Queue Reordering (drag to rearrange)
+
 **Why:** When you add 5 songs and realize you want a different order, you shouldn't have
 to remove and re-add everything.
 
@@ -31,6 +32,7 @@ to remove and re-add everything.
 - Both users see the reorder reflected in real-time
 
 ### 2.2 Anyone Can Remove Any Song
+
 **Why:** It's just two of you. Trust each other. Having to ask your girlfriend to
 remove her own song is friction you don't need.
 
@@ -38,6 +40,7 @@ remove her own song is friction you don't need.
 - Client: show the remove ✕ button on all queue items, not just your own
 
 ### 2.3 Song Progress Bar
+
 **Why:** Knowing how much of the song is left helps decide when to add the next one.
 No backend change needed — computed from `nowPlaying.startedAt` + elapsed.
 
@@ -52,6 +55,7 @@ No backend change needed — computed from `nowPlaying.startedAt` + elapsed.
 > Transitions and polish that make the room feel like a space, not just a form.
 
 ### 3.1 Click-to-Join Splash Screen
+
 **Why:** Browser autoplay policy blocks the first video from playing without a user
 gesture. Right now it may silently fail. The splash also creates a moment of
 intentional "entering the room" that fits the vibe.
@@ -61,6 +65,7 @@ intentional "entering the room" that fits the vibe.
 - Single state flag in React — no backend change needed
 
 ### 3.2 User Color Coding
+
 **Why:** With exactly two people chatting, you want to instantly tell messages apart
 at a glance — not just by reading the name.
 
@@ -70,6 +75,7 @@ at a glance — not just by reading the name.
 - Your color stays consistent across sessions
 
 ### 3.3 "Now Playing" Progress on Queue Card
+
 **Why:** The currently-playing item should visually feel different from queued items.
 
 - Add a subtle animated amber underline or background fill on the `position: 0` queue card
@@ -83,11 +89,13 @@ at a glance — not just by reading the name.
 > Things that would make it more fun after the core experience is solid.
 
 ### 4.1 Emoji Reactions
+
 - Press a reaction button (❤️ 🔥 😂 🎸) and a floating emoji bursts across the player
 - Could be ephemeral (client-only animation triggered by a SpacetimeDB reducer event)
   or persisted with a short TTL — either way, no permanent data needed
 
 ### 4.2 Song History
+
 **Why:** "What was that track?" — happens constantly in any listening session.
 
 - Keep a `song_history` table: insert a row whenever `play_next` is called, storing
@@ -95,12 +103,14 @@ at a glance — not just by reading the name.
 - Show the last 5 played tracks below the queue strip (collapsed by default)
 
 ### 4.3 Mobile Layout
+
 **Why:** Sometimes you want to add a song from your phone while the video plays on a laptop.
 
 - Stacked layout at `< 768px`: player full-width, queue below, chat hidden behind a tab
 - The current layout is explicitly desktop-first (per original PRD) — this is a later polish
 
 ### 4.4 Playback Pause/Resume Sync
+
 **Why:** Pausing on one client pauses for both. Closer to the Spotify Jam experience.
 
 - Requires adding `is_playing: bool` to the `now_playing` table (already in PRD schema)

@@ -73,9 +73,7 @@ type AppCtx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 // Spreading ctx.db.queue_item.iter() into an array before modifying prevents
 // any iterator invalidation issues.
 function tryPlayNext(ctx: AppCtx): void {
-  const waiting = [...ctx.db.queue_item.iter()].sort(
-    (a, b) => a.position - b.position
-  );
+  const waiting = [...ctx.db.queue_item.iter()].sort((a, b) => a.position - b.position);
 
   if (waiting.length === 0) {
     if (ctx.db.now_playing.id.find(1)) {
@@ -118,33 +116,27 @@ function validateName(name: string): void {
   if (!name) throw new SenderError('Names must not be empty');
 }
 
-export const set_name = spacetimedb.reducer(
-  { name: t.string() },
-  (ctx, { name }) => {
-    validateName(name);
-    const found = ctx.db.user.identity.find(ctx.sender);
-    if (!found) throw new SenderError('Cannot set name for unknown user');
-    console.info(`User ${ctx.sender} sets name to ${name}`);
-    ctx.db.user.identity.update({ ...found, name });
-  }
-);
+export const set_name = spacetimedb.reducer({ name: t.string() }, (ctx, { name }) => {
+  validateName(name);
+  const found = ctx.db.user.identity.find(ctx.sender);
+  if (!found) throw new SenderError('Cannot set name for unknown user');
+  console.info(`User ${ctx.sender} sets name to ${name}`);
+  ctx.db.user.identity.update({ ...found, name });
+});
 
 function validateMessage(text: string): void {
   if (!text) throw new SenderError('Messages must not be empty');
 }
 
-export const send_message = spacetimedb.reducer(
-  { text: t.string() },
-  (ctx, { text }) => {
-    validateMessage(text);
-    console.info(`User ${ctx.sender}: ${text}`);
-    ctx.db.message.insert({
-      sender: ctx.sender,
-      text,
-      sent: ctx.timestamp,
-    });
-  }
-);
+export const send_message = spacetimedb.reducer({ text: t.string() }, (ctx, { text }) => {
+  validateMessage(text);
+  console.info(`User ${ctx.sender}: ${text}`);
+  ctx.db.message.insert({
+    sender: ctx.sender,
+    text,
+    sent: ctx.timestamp,
+  });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUEUE REDUCERS
@@ -187,7 +179,7 @@ export const remove_from_queue = spacetimedb.reducer(
     const item = ctx.db.queue_item.id.find(queue_item_id);
     if (!item) throw new SenderError('Queue item not found');
     if (!item.added_by.isEqual(ctx.sender)) {
-      throw new SenderError('Cannot remove another user\'s queue item');
+      throw new SenderError("Cannot remove another user's queue item");
     }
 
     const removedPosition = item.position;
@@ -242,8 +234,6 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
   if (found) {
     ctx.db.user.identity.update({ ...found, online: false });
   } else {
-    console.warn(
-      `Disconnect event for unknown user with identity ${ctx.sender}`
-    );
+    console.warn(`Disconnect event for unknown user with identity ${ctx.sender}`);
   }
 });

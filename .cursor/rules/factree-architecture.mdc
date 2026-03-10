@@ -1,0 +1,222 @@
+---
+name: factree-architecture
+description: "Project-specific architecture, conventions, and patterns for factree.fm. Read this before implementing any new feature."
+globs: src/**/*.ts,src/**/*.tsx,src/**/*.css
+alwaysApply: true
+---
+
+# factree.fm — Architecture Rules
+
+## Project Context
+
+A private, single-room YouTube listening app for two users. Real-time sync via SpacetimeDB.
+Think Spotify Jam but for YouTube — one room, one queue, one vibe.
+
+---
+
+## State Architecture — Hard Rules
+
+**SpacetimeDB is the single source of truth for all shared state.**
+
+| What | Where | Access pattern |
+|---|---|---|
+| Currently playing video | `now_playing` table (singleton) | `useTable(tables.now_playing)` |
+| Song queue | `queue_item` table | `useTable(tables.queue_item)` |
+| Chat messages | `message` table | `useTable(tables.message)` |
+| Online users | `user` table | `useTable(tables.user.where(r => r.online.eq(true)))` |
+| Volume | `localStorage` | `localStorage.getItem/setItem` — user-local preference |
+| Input drafts, edit mode, loading flags | React `useState` | ephemeral, per-client only |
+
+**Rules:**
+1. Never use React state or context for data shared between users — it belongs in a SpacetimeDB table
+2. Never optimistically update local state — let the subscription update drive the render
+3. Never read `conn.reducers` return values — reducers are transactional and return nothing
+
+---
+
+## File Structure
+
+```
+src/
+├── components/<feature>/   One directory per feature domain
+│   └── ComponentName.tsx   PascalCase, named export
+├── hooks/
+│   └── useHookName.ts      camelCase, always prefixed with "use"
+├── utils/
+│   └── utilName.ts         camelCase, pure functions only
+├── module_bindings/        ← GENERATED — never edit manually
+│                             Regenerate: npm run spacetime:generate
+├── App.tsx                 Layout shell + connecting state
+├── App.css                 All component styles (co-located by class name)
+├── index.css               Design tokens, global resets, typography
+└── main.tsx                SpacetimeDBProvider + React root
+```
+
+When adding a new feature:
+- New shared state → new table in `spacetimedb/src/schema.ts`
+- New mutation → new reducer in `spacetimedb/src/index.ts`
+- New UI component → `src/components/<feature>/ComponentName.tsx`
+- New logic hook → `src/hooks/useHookName.ts`
+- New pure utility → `src/utils/utilName.ts`
+
+---
+
+## Component Conventions
+
+```typescript
+// ✅ Named export, explicit return type, props interface
+interface QueueItemRowProps {
+  item: Types.QueueItem;
+  isOwn: boolean;
+  onRemove: (id: bigint) => void;
+}
+
+export function QueueItemRow({ item, isOwn, onRemove }: QueueItemRowProps): JSX.Element {
+  // ...
+}
+
+// ❌ Default export
+export default function QueueItemRow() { ... }
+
+// ❌ Missing return type
+export function QueueItemRow({ item }: QueueItemRowProps) { ... }
+```
+
+---
+
+## CSS Conventions
+
+**Always use CSS custom properties. Never hardcode colors or font stacks.**
+
+```css
+/* ✅ */
+color: var(--accent);
+background: var(--surface);
+font-family: 'Playfair Display', Georgia, serif; /* OK for display text */
+
+/* ❌ */
+color: #e8a030;
+background: #1e160a;
+```
+
+### Design Token Reference (`src/index.css`)
+
+| Token | Role |
+|---|---|
+| `--accent` | Warm amber — primary brand, CTA buttons, highlights |
+| `--accent-dim` | Darkened amber — hover state for accent elements |
+| `--accent-glow` | Translucent amber — focus ring on inputs |
+| `--accent-contrast` | Dark text on amber backgrounds |
+| `--bg` | Page background |
+| `--text` | Primary text |
+| `--text-muted` | Secondary / meta text |
+| `--border` | Dividers, card borders |
+| `--surface` | Card / panel background |
+| `--surface-own` | Your own message / queue item highlight |
+| `--surface-hover` | Hover state for interactive surfaces |
+| `--textbox-color` | Input field background |
+
+### Typography Stack
+
+| Role | Font |
+|---|---|
+| Logo / song titles / headings | `'Playfair Display', Georgia, serif` |
+| Body text / chat messages | `'Lora', Georgia, serif` |
+| Labels / timestamps / monospace | `'IBM Plex Mono', 'Courier New', monospace` |
+
+### Class Naming
+
+- kebab-case, scoped to component: `.queue-item`, `.chat-message-sender`, `.player-controls`
+- All styles live in `App.css`, organized by component with section comments
+- Add new tokens to `index.css`, not inline
+
+---
+
+## Framer Motion Conventions
+
+```typescript
+// Song/state transitions — wait for exit before enter
+<AnimatePresence mode="wait">
+  <motion.div key={nowPlaying?.queueItemId.toString()} ... />
+</AnimatePresence>
+
+// List items that appear/disappear dynamically
+<AnimatePresence mode="popLayout">
+  {items.map(item => <motion.div key={item.id.toString()} ... />)}
+</AnimatePresence>
+
+// Staggered list entrance
+const container = { visible: { transition: { staggerChildren: 0.07 } } };
+const item = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
+};
+
+// Keep transitions short — snappy over dramatic
+transition={{ duration: 0.2 }}  // ✅ max ~0.3s for UI transitions
+transition={{ duration: 0.8 }}  // ❌ too slow for interactive elements
+```
+
+**Note:** `ease: 'easeOut' as const` is required — Framer Motion's `Easing` type is a
+literal union, not `string`. TypeScript will error without the `as const` assertion.
+
+---
+
+## SpacetimeDB Integration
+
+See `spacetimedb-typescript.mdc` for full SDK rules. Project-specific patterns:
+
+```typescript
+// Reading data — always destructure as tuple
+const [rows, isLoading] = useTable(tables.tableName);
+
+// Filtered subscription (indexed column)
+const [onlineUsers] = useTable(tables.user.where(r => r.online.eq(true)));
+
+// Mutations — object syntax, not positional
+const addToQueue = useReducer(reducers.addToQueue);
+addToQueue({ videoId, title, thumbnailUrl });  // ✅
+addToQueue(videoId, title, thumbnailUrl);      // ❌
+
+// Identity comparison
+row.addedBy.isEqual(identity)          // ✅
+row.addedBy === identity               // ❌ — reference equality doesn't work
+
+// Timestamps
+new Date(Number(row.createdAt.microsSinceUnixEpoch / 1000n))  // ✅
+new Date(row.createdAt)                                        // ❌
+```
+
+### Backend Layout
+
+```
+spacetimedb/src/
+├── schema.ts   Tables definition + `export default spacetimedb`
+└── index.ts    Reducers + clientConnected/clientDisconnected hooks
+```
+
+After any backend change:
+1. `npm run spacetime:publish` — deploy to maincloud
+2. `npm run spacetime:generate` — regenerate `src/module_bindings/`
+3. Commit the updated bindings
+
+---
+
+## TypeScript Rules
+
+- `strict: true` is enforced — no exceptions
+- No `any` — use `unknown` + type guards or proper generics
+- `import type` for type-only imports — enforced by ESLint
+- BigInt literals for `u64`/`i64` fields: `0n`, `1n`, not `0`, `1`
+
+---
+
+## YouTube IFrame API
+
+The `<div ref={wrapperRef}>` in `PlayerPanel` is **intentionally outside React's virtual DOM**.
+YouTube replaces it with an `<iframe>`, which React cannot manage. Never:
+- Conditionally render `wrapperRef`
+- Move the YouTube player DOM node
+- Recreate the `YT.Player` instance on re-render
+
+All playback sync logic lives in `src/hooks/useYouTubeSync.ts`.

@@ -11,13 +11,13 @@ A synchronized music listening room built with **SpacetimeDB**. Everyone in the 
 
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React + TypeScript + Vite |
+| Layer            | Technology                                                 |
+| ---------------- | ---------------------------------------------------------- |
+| Frontend         | React + TypeScript + Vite                                  |
 | Realtime backend | [SpacetimeDB](https://spacetimedb.com) (TypeScript module) |
-| Video | YouTube IFrame API |
-| Video metadata | YouTube oEmbed (no API key required) |
-| Styling | Plain CSS with custom properties |
+| Video            | YouTube IFrame API                                         |
+| Video metadata   | YouTube oEmbed (no API key required)                       |
+| Styling          | Plain CSS with custom properties                           |
 
 ## Project structure
 
@@ -88,4 +88,4 @@ Rather than broadcasting "seek to X" events, the `now_playing` table stores a `s
 When a video ends, all connected clients fire `play_next`. SpacetimeDB serializes these reducer calls. The reducer checks whether `queueItemId` still matches the current `now_playing` row — only the first call succeeds; the rest are no-ops.
 
 **YouTube IFrame API + React reconciliation**
-The YouTube Player API replaces its target `<div>` with an `<iframe>`. To avoid React's virtual DOM fighting over that element, the player's target div is created and appended *imperatively* (outside React's tree) into a ref-controlled wrapper. React never knows the iframe exists.
+The YouTube Player API replaces its target `<div>` with an `<iframe>`. To avoid React's virtual DOM fighting over that element, the player's target div is created and appended _imperatively_ (outside React's tree) into a ref-controlled wrapper. React never knows the iframe exists.

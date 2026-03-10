@@ -173,9 +173,7 @@ export function PlayerPanel(): JSX.Element {
                 <p className="now-playing-by">
                   added by{' '}
                   <span className="now-playing-username">
-                    {identity && nowPlaying.addedBy.isEqual(identity)
-                      ? 'you'
-                      : addedByName}
+                    {identity && nowPlaying.addedBy.isEqual(identity) ? 'you' : addedByName}
                   </span>
                 </p>
               </div>

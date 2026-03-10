@@ -26,18 +26,9 @@ interface QueueItemRowProps {
 
 function QueueItemRow({ item, isOwn, onRemove }: QueueItemRowProps): JSX.Element {
   return (
-    <motion.div
-      className="queue-item"
-      variants={itemVariants}
-      layout
-      layoutId={item.id.toString()}
-    >
+    <motion.div className="queue-item" variants={itemVariants} layout layoutId={item.id.toString()}>
       <span className="queue-item-position">#{item.position}</span>
-      <img
-        src={item.thumbnailUrl}
-        alt={item.title}
-        className="queue-item-thumb"
-      />
+      <img src={item.thumbnailUrl} alt={item.title} className="queue-item-thumb" />
       <div className="queue-item-meta">
         <p className="queue-item-title">{item.title}</p>
         <p className="queue-item-by">
@@ -70,9 +61,7 @@ export function QueuePanel(): JSX.Element {
 
   const myPosition = useMemo(
     () =>
-      identity
-        ? sorted.find(item => item.addedBy.isEqual(identity))?.position ?? null
-        : null,
+      identity ? (sorted.find(item => item.addedBy.isEqual(identity))?.position ?? null) : null,
     [identity, sorted]
   );
 
