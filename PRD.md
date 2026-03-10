@@ -25,15 +25,16 @@ Think of it as a virtual listening party. One room, one queue, one vibe.
 
 ## 2. Goals
 
-| # | Goal |
-|---|------|
-| G1 | Demonstrate SpacetimeDB real-time sync for shared application state |
-| G2 | Synchronized playback — all clients at the same timestamp of the video |
-| G3 | Persistent queue managed server-side, not per-client |
-| G4 | Real-time chat works alongside the player |
-| G5 | The codebase serves as a reference for SpacetimeDB patterns |
+| #   | Goal                                                                   |
+| --- | ---------------------------------------------------------------------- |
+| G1  | Demonstrate SpacetimeDB real-time sync for shared application state    |
+| G2  | Synchronized playback — all clients at the same timestamp of the video |
+| G3  | Persistent queue managed server-side, not per-client                   |
+| G4  | Real-time chat works alongside the player                              |
+| G5  | The codebase serves as a reference for SpacetimeDB patterns            |
 
 ### Non-Goals (MVP)
+
 - Multiple rooms — one global room only
 - User authentication beyond SpacetimeDB identity
 - Persistent history / past songs
@@ -69,6 +70,7 @@ This section defines what needs to change in `spacetimedb/src/index.ts`.
 ### Tables
 
 #### `user` (already exists — keep as-is)
+
 ```ts
 {
   identity: t.identity().primaryKey(),
@@ -78,6 +80,7 @@ This section defines what needs to change in `spacetimedb/src/index.ts`.
 ```
 
 #### `message` (already exists — keep as-is)
+
 ```ts
 {
   sender: t.identity(),
@@ -87,6 +90,7 @@ This section defines what needs to change in `spacetimedb/src/index.ts`.
 ```
 
 #### `queue_item` (new)
+
 A video waiting to be played, or the currently playing video.
 
 ```ts
@@ -106,6 +110,7 @@ A video waiting to be played, or the currently playing video.
 > The adding client resolves metadata before calling the reducer.
 
 #### `now_playing` (new)
+
 Singleton table — always exactly 0 or 1 rows.
 
 ```ts
@@ -119,13 +124,16 @@ Singleton table — always exactly 0 or 1 rows.
 
 > **Why `started_at` on the server?** This is the key to synchronized
 > playback. When a client connects, it calculates:
+>
 > ```
 > currentTime = (now - started_at) in seconds
 > ```
+>
 > and seeks the YouTube player to that position. SpacetimeDB's timestamps are
 > authoritative — no client can drift.
 
 #### `skip_vote` (stretch goal)
+
 ```ts
 {
   voter: t.identity().primaryKey(),
@@ -138,12 +146,14 @@ Singleton table — always exactly 0 or 1 rows.
 ## 5. Reducers
 
 ### Existing (keep)
+
 - `set_name` — set display name
 - `send_message` — send a chat message
 
 ### New
 
 #### `add_to_queue`
+
 ```
 Input: { video_id, title, thumbnail_url }
 Logic:
@@ -154,6 +164,7 @@ Logic:
 ```
 
 #### `remove_from_queue`
+
 ```
 Input: { queue_item_id }
 Logic:
@@ -164,6 +175,7 @@ Logic:
 ```
 
 #### `play_next`
+
 ```
 Input: (none — called internally or when client reports "video ended")
 Logic:
@@ -183,6 +195,7 @@ Logic:
 > advancing. First caller wins; subsequent calls are no-ops.
 
 #### `vote_skip` (stretch goal)
+
 ```
 Input: { queue_item_id }
 Logic:
@@ -196,6 +209,7 @@ Logic:
 ## 6. Client Architecture
 
 ### Component Structure
+
 ```
 App
 ├── SpacetimeDB provider (useSpacetimeDB)
@@ -214,6 +228,7 @@ App
 ```
 
 ### Synchronized Playback Logic (Client)
+
 ```ts
 // On now_playing insert or update:
 function syncPlayback(nowPlaying: NowPlaying, player: YT.Player) {
@@ -229,7 +244,9 @@ function onVideoEnded() {
 ```
 
 ### YouTube Metadata Resolution (Client, before `add_to_queue`)
+
 Use the `oEmbed` endpoint — no API key needed:
+
 ```
 GET https://www.youtube.com/oembed?url=https://youtu.be/{VIDEO_ID}&format=json
 → { title, thumbnail_url, ... }
@@ -269,30 +286,30 @@ Then extract the video ID from the user's input URL (handles `/watch?v=`, `/yout
 
 Break this into discrete, shippable steps:
 
-| Step | What to build | Key learning |
-|------|--------------|--------------|
+| Step  | What to build                                                     | Key learning                                  |
+| ----- | ----------------------------------------------------------------- | --------------------------------------------- |
 | **1** | Update SpacetimeDB schema: add `queue_item`, `now_playing` tables | SpacetimeDB auto-increment, singleton pattern |
-| **2** | Add `add_to_queue`, `remove_from_queue`, `play_next` reducers | Reducer composition, internal reducer calls |
-| **3** | Regenerate TypeScript bindings (`yarn spacetime:generate`) | Understanding generated types |
-| **4** | Build `QueuePanel` with add form and list | `useTable`, `useReducer` patterns |
-| **5** | Integrate YouTube IFrame API in `PlayerPanel` | YT API lifecycle |
-| **6** | Implement synchronized playback from `started_at` | The SpacetimeDB timestamp sync trick |
-| **7** | Wire `onVideoEnded` → `play_next` with idempotency guard | Distributed event deduplication |
-| **8** | Style everything (layout above) | Final polish |
-| **9** | Vote-to-skip (stretch) | Multi-user agreement pattern |
+| **2** | Add `add_to_queue`, `remove_from_queue`, `play_next` reducers     | Reducer composition, internal reducer calls   |
+| **3** | Regenerate TypeScript bindings (`yarn spacetime:generate`)        | Understanding generated types                 |
+| **4** | Build `QueuePanel` with add form and list                         | `useTable`, `useReducer` patterns             |
+| **5** | Integrate YouTube IFrame API in `PlayerPanel`                     | YT API lifecycle                              |
+| **6** | Implement synchronized playback from `started_at`                 | The SpacetimeDB timestamp sync trick          |
+| **7** | Wire `onVideoEnded` → `play_next` with idempotency guard          | Distributed event deduplication               |
+| **8** | Style everything (layout above)                                   | Final polish                                  |
+| **9** | Vote-to-skip (stretch)                                            | Multi-user agreement pattern                  |
 
 ---
 
 ## 9. Technical Constraints & Open Questions
 
-| # | Question | Proposed Answer |
-|---|----------|----------------|
-| Q1 | Can SpacetimeDB reducers call each other? | Yes — `play_next` can be called from within `add_to_queue` and `remove_from_queue` |
-| Q2 | Who triggers `play_next` when a video ends? | Any client detecting `ENDED` — reducer guards against duplicate advances |
-| Q3 | What if two clients call `play_next` simultaneously? | SpacetimeDB serializes all reducer calls — first one wins, second is a no-op if `queue_item_id` already advanced |
-| Q4 | How to handle new joiners mid-video? | `now_playing.started_at` lets them seek to the correct position immediately |
-| Q5 | YouTube autoplay restrictions (browser policy)? | May need a user gesture before first play; show a "Click to join the room" splash |
-| Q6 | What if the queue is empty? | `now_playing` row is absent; player shows idle state |
+| #   | Question                                             | Proposed Answer                                                                                                  |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Q1  | Can SpacetimeDB reducers call each other?            | Yes — `play_next` can be called from within `add_to_queue` and `remove_from_queue`                               |
+| Q2  | Who triggers `play_next` when a video ends?          | Any client detecting `ENDED` — reducer guards against duplicate advances                                         |
+| Q3  | What if two clients call `play_next` simultaneously? | SpacetimeDB serializes all reducer calls — first one wins, second is a no-op if `queue_item_id` already advanced |
+| Q4  | How to handle new joiners mid-video?                 | `now_playing.started_at` lets them seek to the correct position immediately                                      |
+| Q5  | YouTube autoplay restrictions (browser policy)?      | May need a user gesture before first play; show a "Click to join the room" splash                                |
+| Q6  | What if the queue is empty?                          | `now_playing` row is absent; player shows idle state                                                             |
 
 ---
 

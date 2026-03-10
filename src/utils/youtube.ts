@@ -35,7 +35,9 @@ export async function fetchVideoMetadata(videoId: string): Promise<VideoMetadata
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Could not fetch video metadata (${response.status}). The video may be private or unavailable.`);
+    throw new Error(
+      `Could not fetch video metadata (${response.status}). The video may be private or unavailable.`
+    );
   }
 
   const data = (await response.json()) as OEmbedResponse;

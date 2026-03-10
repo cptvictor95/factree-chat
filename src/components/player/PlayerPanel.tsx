@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSpacetimeDB, useReducer } from 'spacetimedb/react';
 import { reducers } from '../../module_bindings';
 import { useYouTubeSync } from '../../hooks/useYouTubeSync';
@@ -141,6 +142,7 @@ export function PlayerPanel(): JSX.Element {
       <div className="player-embed-wrapper">
         {!nowPlaying && (
           <div className="player-idle">
+            <div className="vinyl-record" aria-hidden="true" />
             <p>Queue is empty</p>
             <p className="player-idle-hint">Add a YouTube URL below to start the room</p>
           </div>
@@ -151,28 +153,42 @@ export function PlayerPanel(): JSX.Element {
       </div>
 
       <div className="player-controls">
-        {nowPlaying ? (
-          <div className="now-playing-info">
-            <img
-              src={nowPlaying.thumbnailUrl}
-              alt={nowPlaying.title}
-              className="now-playing-thumb"
+        <AnimatePresence mode="wait">
+          {nowPlaying ? (
+            <motion.div
+              key={nowPlaying.queueItemId.toString()}
+              className="now-playing-info"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <img
+                src={nowPlaying.thumbnailUrl}
+                alt={nowPlaying.title}
+                className="now-playing-thumb"
+              />
+              <div className="now-playing-meta">
+                <p className="now-playing-title">{nowPlaying.title}</p>
+                <p className="now-playing-by">
+                  added by{' '}
+                  <span className="now-playing-username">
+                    {identity && nowPlaying.addedBy.isEqual(identity) ? 'you' : addedByName}
+                  </span>
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              className="now-playing-empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             />
-            <div className="now-playing-meta">
-              <p className="now-playing-title">{nowPlaying.title}</p>
-              <p className="now-playing-by">
-                added by{' '}
-                <span className="now-playing-username">
-                  {identity && nowPlaying.addedBy.isEqual(identity)
-                    ? 'you'
-                    : addedByName}
-                </span>
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="now-playing-empty" />
-        )}
+          )}
+        </AnimatePresence>
 
         {nowPlaying && (
           <button

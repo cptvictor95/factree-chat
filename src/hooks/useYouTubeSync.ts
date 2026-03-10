@@ -43,8 +43,7 @@ export function useYouTubeSync(
     if (lastSyncedIdRef.current === nowPlaying.queueItemId) return;
     lastSyncedIdRef.current = nowPlaying.queueItemId;
 
-    const elapsedSeconds =
-      (Date.now() - nowPlaying.startedAt.toDate().getTime()) / 1000;
+    const elapsedSeconds = (Date.now() - nowPlaying.startedAt.toDate().getTime()) / 1000;
 
     player.loadVideoById({
       videoId: nowPlaying.videoId,
