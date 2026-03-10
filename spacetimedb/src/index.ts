@@ -65,10 +65,49 @@ const now_playing = table(
   }
 );
 
+// Ephemeral presence — tracks who is currently typing. Cleaned up on disconnect.
+const typing = table(
+  { name: 'typing', public: true },
+  {
+    identity: t.identity().primaryKey(),
+    typing_at: t.timestamp(),
+  }
+);
+
+// Ephemeral reactions — inserted on send, clients animate new arrivals.
+// Accumulates over time; for a 2-person room this is negligible.
+const reaction = table(
+  { name: 'reaction', public: true },
+  {
+    id: t.u64().autoInc().primaryKey(),
+    identity: t.identity(),
+    emoji: t.string(),
+    sent_at: t.timestamp(),
+  }
+);
+
+// Singleton settings row — used for soft-clearing the chat without deleting rows.
+// Clients filter messages to only show those sent after messages_cleared_at.
+const room_settings = table(
+  { name: 'room_settings', public: true },
+  {
+    id: t.u8().primaryKey(),
+    messages_cleared_at: t.timestamp(),
+  }
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SCHEMA
 // ─────────────────────────────────────────────────────────────────────────────
-const spacetimedb = schema({ user, message, queue_item, now_playing });
+const spacetimedb = schema({
+  user,
+  message,
+  queue_item,
+  now_playing,
+  typing,
+  reaction,
+  room_settings,
+});
 export default spacetimedb;
 
 type AppCtx = ReducerCtx<InferSchema<typeof spacetimedb>>;
@@ -249,6 +288,45 @@ export const toggle_playback = spacetimedb.reducer(ctx => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CHAT & REACTION REDUCERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Upsert the caller into the typing table. Call on every keystroke (idempotent).
+export const start_typing = spacetimedb.reducer(ctx => {
+  const existing = ctx.db.typing.identity.find(ctx.sender);
+  if (existing) {
+    ctx.db.typing.identity.update({ ...existing, typing_at: ctx.timestamp });
+  } else {
+    ctx.db.typing.insert({ identity: ctx.sender, typing_at: ctx.timestamp });
+  }
+});
+
+// Remove the caller from the typing table. Call after a typing timeout or blur.
+export const stop_typing = spacetimedb.reducer(ctx => {
+  if (ctx.db.typing.identity.find(ctx.sender)) {
+    ctx.db.typing.identity.delete(ctx.sender);
+  }
+});
+
+// Broadcast an emoji reaction. Only predefined emojis are accepted.
+export const send_reaction = spacetimedb.reducer({ emoji: t.string() }, (ctx, { emoji }) => {
+  const allowed = ['❤️', '🔥', '😂', '🎸', '👏', '😍'];
+  if (!allowed.includes(emoji)) throw new SenderError('Invalid emoji');
+  ctx.db.reaction.insert({ id: 0n, identity: ctx.sender, emoji, sent_at: ctx.timestamp });
+});
+
+// Soft-clears the chat by recording the current timestamp in room_settings.
+// Clients filter messages to only show those sent after messages_cleared_at.
+export const clear_chat = spacetimedb.reducer(ctx => {
+  const settings = ctx.db.room_settings.id.find(1);
+  if (settings) {
+    ctx.db.room_settings.id.update({ ...settings, messages_cleared_at: ctx.timestamp });
+  } else {
+    ctx.db.room_settings.insert({ id: 1, messages_cleared_at: ctx.timestamp });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LIFECYCLE HOOKS
 // ─────────────────────────────────────────────────────────────────────────────
 export const init = spacetimedb.init(_ctx => {});
@@ -272,5 +350,9 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
     ctx.db.user.identity.update({ ...found, online: false });
   } else {
     console.warn(`Disconnect event for unknown user with identity ${ctx.sender}`);
+  }
+  // Clean up ephemeral typing status
+  if (ctx.db.typing.identity.find(ctx.sender)) {
+    ctx.db.typing.identity.delete(ctx.sender);
   }
 });

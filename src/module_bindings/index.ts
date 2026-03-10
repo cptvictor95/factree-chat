@@ -35,10 +35,14 @@ import {
 
 // Import all reducer arg schemas
 import AddToQueueReducer from "./add_to_queue_reducer";
+import ClearChatReducer from "./clear_chat_reducer";
 import PlayNextReducer from "./play_next_reducer";
 import RemoveFromQueueReducer from "./remove_from_queue_reducer";
 import SendMessageReducer from "./send_message_reducer";
+import SendReactionReducer from "./send_reaction_reducer";
 import SetNameReducer from "./set_name_reducer";
+import StartTypingReducer from "./start_typing_reducer";
+import StopTypingReducer from "./stop_typing_reducer";
 import TogglePlaybackReducer from "./toggle_playback_reducer";
 
 // Import all procedure arg schemas
@@ -47,6 +51,9 @@ import TogglePlaybackReducer from "./toggle_playback_reducer";
 import MessageRow from "./message_table";
 import NowPlayingRow from "./now_playing_table";
 import QueueItemRow from "./queue_item_table";
+import ReactionRow from "./reaction_table";
+import RoomSettingsRow from "./room_settings_table";
+import TypingRow from "./typing_table";
 import UserRow from "./user_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -82,6 +89,39 @@ const tablesSchema = __schema({
       { name: 'queue_item_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, QueueItemRow),
+  reaction: __table({
+    name: 'reaction',
+    indexes: [
+      { name: 'id', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'reaction_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReactionRow),
+  room_settings: __table({
+    name: 'room_settings',
+    indexes: [
+      { name: 'id', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'room_settings_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, RoomSettingsRow),
+  typing: __table({
+    name: 'typing',
+    indexes: [
+      { name: 'identity', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'typing_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, TypingRow),
   user: __table({
     name: 'user',
     indexes: [
@@ -98,10 +138,14 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("add_to_queue", AddToQueueReducer),
+  __reducerSchema("clear_chat", ClearChatReducer),
   __reducerSchema("play_next", PlayNextReducer),
   __reducerSchema("remove_from_queue", RemoveFromQueueReducer),
   __reducerSchema("send_message", SendMessageReducer),
+  __reducerSchema("send_reaction", SendReactionReducer),
   __reducerSchema("set_name", SetNameReducer),
+  __reducerSchema("start_typing", StartTypingReducer),
+  __reducerSchema("stop_typing", StopTypingReducer),
   __reducerSchema("toggle_playback", TogglePlaybackReducer),
 );
 

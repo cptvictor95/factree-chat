@@ -41,6 +41,26 @@ export const QueueItem = __t.object("QueueItem", {
 });
 export type QueueItem = __Infer<typeof QueueItem>;
 
+export const Reaction = __t.object("Reaction", {
+  id: __t.u64(),
+  identity: __t.identity(),
+  emoji: __t.string(),
+  sentAt: __t.timestamp(),
+});
+export type Reaction = __Infer<typeof Reaction>;
+
+export const RoomSettings = __t.object("RoomSettings", {
+  id: __t.u8(),
+  messagesClearedAt: __t.timestamp(),
+});
+export type RoomSettings = __Infer<typeof RoomSettings>;
+
+export const Typing = __t.object("Typing", {
+  identity: __t.identity(),
+  typingAt: __t.timestamp(),
+});
+export type Typing = __Infer<typeof Typing>;
+
 export const User = __t.object("User", {
   identity: __t.identity(),
   name: __t.option(__t.string()),
