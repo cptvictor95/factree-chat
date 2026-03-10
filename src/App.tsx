@@ -8,6 +8,8 @@ import { QueuePanel } from './components/queue/QueuePanel';
 import { ChatPanel } from './components/chat/ChatPanel';
 import './App.css';
 
+type MobileTab = 'queue' | 'chat';
+
 function JoinSplash({ onJoin }: { onJoin: () => void }): JSX.Element {
   return (
     <motion.div
@@ -42,7 +44,9 @@ function JoinSplash({ onJoin }: { onJoin: () => void }): JSX.Element {
 function App(): JSX.Element {
   const { isActive: connected } = useSpacetimeDB();
   const [hasJoined, setHasJoined] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('queue');
   const [onlineUsers] = useTable(tables.user.where(r => r.online.eq(true)));
+  const [queueItems] = useTable(tables.queue_item);
 
   if (!connected) {
     return (
@@ -79,6 +83,8 @@ function App(): JSX.Element {
         )}
       </AnimatePresence>
 
+      {/* Flat children let CSS grid areas place them freely on desktop and
+          stack them as a flex column on mobile without extra wrappers. */}
       <div className="app">
         <header className="app-header">
           <span className="app-logo">factree.fm</span>
@@ -88,18 +94,35 @@ function App(): JSX.Element {
           </span>
         </header>
 
-        <main className="app-main">
-          <div className="app-player">
-            <PlayerPanel />
-          </div>
-          <div className="app-chat">
-            <ChatPanel />
-          </div>
-        </main>
+        <div className="app-player">
+          <PlayerPanel />
+        </div>
 
-        <footer className="app-queue">
+        {/* Visible only on mobile — CSS hides it on desktop */}
+        <nav className="app-mobile-tabs" aria-label="View">
+          <button
+            className={`app-tab-btn${mobileTab === 'queue' ? ' app-tab-btn--active' : ''}`}
+            onClick={() => setMobileTab('queue')}
+          >
+            Up Next
+            {queueItems.length > 0 && <span className="app-tab-badge">{queueItems.length}</span>}
+          </button>
+          <button
+            className={`app-tab-btn${mobileTab === 'chat' ? ' app-tab-btn--active' : ''}`}
+            onClick={() => setMobileTab('chat')}
+          >
+            Chat
+          </button>
+        </nav>
+
+        {/* data-mobile-active drives show/hide inside the mobile media query */}
+        <div className="app-chat" data-mobile-active={mobileTab === 'chat'}>
+          <ChatPanel />
+        </div>
+
+        <div className="app-queue" data-mobile-active={mobileTab === 'queue'}>
           <QueuePanel />
-        </footer>
+        </div>
       </div>
     </>
   );

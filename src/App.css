@@ -11,17 +11,6 @@
   }
 }
 
-/* ── APP SHELL ──────────────────────────────────────────────────────────── */
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  height: 100vh;
-  overflow: hidden;
-  background-color: var(--bg);
-  color: var(--text);
-  position: relative;
-}
-
 /* Grain texture overlay — sits above everything, pointer-events off */
 .app::before {
   content: '';
@@ -173,27 +162,131 @@
   animation: dot-pulse 2.8s ease-in-out infinite;
 }
 
-/* ── MAIN: PLAYER + CHAT ────────────────────────────────────────────────── */
-.app-main {
+/* ── APP LAYOUT — DESKTOP GRID ──────────────────────────────────────────── */
+/*
+  Named grid areas let CSS place flat children freely.
+  header spans full width; player fills the centre-left 1fr;
+  chat and queue stack on the 320px right column.
+*/
+.app {
   display: grid;
+  grid-template-areas:
+    'header header'
+    'player chat'
+    'queue  chat';
   grid-template-columns: 1fr 320px;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
   overflow: hidden;
-  min-height: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  position: relative;
+}
+
+.app-header {
+  grid-area: header;
 }
 
 .app-player {
+  grid-area: player;
   overflow: hidden;
   border-right: 1px solid var(--border);
 }
 
 .app-chat {
+  grid-area: chat;
   overflow: hidden;
 }
 
-/* ── QUEUE FOOTER ───────────────────────────────────────────────────────── */
 .app-queue {
+  grid-area: queue;
   border-top: 1px solid var(--border);
-  flex-shrink: 0;
+}
+
+/* Mobile tab bar — hidden on desktop */
+.app-mobile-tabs {
+  display: none;
+}
+
+/* ── MOBILE LAYOUT ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app {
+    display: flex;
+    flex-direction: column;
+    /* dvh accounts for the browser chrome that hides on scroll */
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-header {
+    flex-shrink: 0;
+  }
+
+  .app-player {
+    flex-shrink: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Tab bar between player and content */
+  .app-mobile-tabs {
+    display: flex;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .app-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition:
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .app-tab-btn--active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .app-tab-badge {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* Both panels fill remaining space; inactive one is hidden */
+  .app-chat,
+  .app-queue {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    border-top: none;
+  }
+
+  .app-chat[data-mobile-active='false'],
+  .app-queue[data-mobile-active='false'] {
+    display: none;
+  }
 }
 
 /* ── PLAYER PANEL ───────────────────────────────────────────────────────── */
@@ -216,6 +309,99 @@
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* ── AUDIO-ONLY MODE ────────────────────────────────────────────────────── */
+@keyframes eq-dance {
+  0%,
+  100% {
+    transform: scaleY(0.2);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* When video is off: shrink wrapper to just show the visualization */
+.player-embed-wrapper--audio-only {
+  flex: none;
+  height: 96px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+/* Keep iframe in DOM at 1px — YouTube requires it to keep audio running */
+.player-embed-wrapper--audio-only .player-embed {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.audio-viz {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 36px;
+}
+
+.eq-bar {
+  width: 5px;
+  height: 36px;
+  background: var(--accent);
+  transform-origin: bottom center;
+  transform: scaleY(0.2);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.65;
+  transition: transform 0.1s;
+}
+
+.eq-bar--playing {
+  animation: eq-dance 0.75s ease-in-out infinite;
+}
+
+.audio-viz-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.audio-viz-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-viz-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── MOBILE VIDEO HEIGHT ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .player-embed-wrapper {
+    /* 16:9 aspect ratio capped at 40% of viewport height */
+    flex: none;
+    height: min(56.25vw, 40dvh);
+  }
+
+  .player-embed-wrapper--audio-only {
+    height: 80px;
+  }
 }
 
 /* Idle state — vinyl record illustration */
@@ -330,6 +516,72 @@
 
 .playpause-btn:hover {
   opacity: 0.85;
+}
+
+/* Video-off toggle button */
+.video-toggle-btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.65rem;
+  font-family: 'IBM Plex Mono', monospace;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.video-toggle-btn:hover,
+.video-toggle-btn--active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── MOBILE CONTROLS ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .player-controls {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .playpause-btn,
+  .skip-btn {
+    padding: 0.5rem 0.65rem;
+    font-size: 1rem;
+    /* larger touch target */
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .volume-slider {
+    width: 55px;
+  }
+
+  /* Hide the volume number on mobile — saves space */
+  .volume-value {
+    display: none;
+  }
+
+  .now-playing-thumb {
+    width: 40px;
+    height: 30px;
+  }
+
+  .now-playing-title {
+    font-size: 0.82rem;
+  }
+
+  .player-progress-time {
+    display: none;
+  }
 }
 
 .now-playing-info {
