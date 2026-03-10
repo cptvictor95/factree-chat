@@ -1,11 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { JSX } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useSpacetimeDB, useReducer } from 'spacetimedb/react';
-import { reducers } from '../../module_bindings';
+import { useSpacetimeDB, useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../../module_bindings';
 import { useYouTubeSync } from '../../hooks/useYouTubeSync';
+import { identityToColor, identityToShortId } from '../../utils/identity';
 
 const VIDEO_OFF_KEY = 'factree-fm-video-off';
+
+const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🎸', '👏', '😍'] as const;
+
+interface FloatingReaction {
+  uid: string;
+  emoji: string;
+  x: number;
+}
 
 function AudioViz({ isPlaying, title }: { isPlaying: boolean; title: string | null }): JSX.Element {
   return (
@@ -68,8 +77,6 @@ function formatTime(seconds: number): string {
 }
 
 export function PlayerPanel(): JSX.Element {
-  // The wrapper div is React-controlled. We manually append the YT target element
-  // inside it so YouTube can replace it with an iframe without React interfering.
   const wrapperRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
@@ -82,14 +89,36 @@ export function PlayerPanel(): JSX.Element {
 
   const [videoOff, setVideoOff] = useState(() => localStorage.getItem(VIDEO_OFF_KEY) === 'true');
 
-  // Progress bar state: 0–1 fraction and total duration in seconds
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  // Floating emoji reactions — each entry auto-removes after 2.2s
+  const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const sessionStartRef = useRef<Date>(new Date());
 
   const { nowPlaying, onPlayerStateChange } = useYouTubeSync(playerRef, playerReady);
   const { identity } = useSpacetimeDB();
   const playNext = useReducer(reducers.playNext);
   const togglePlayback = useReducer(reducers.togglePlayback);
+  const sendReaction = useReducer(reducers.sendReaction);
+
+  // Watch reaction table — animate only reactions that arrived after we joined
+  const addFloatingReaction = useCallback((emoji: string): void => {
+    const uid = `${Date.now()}-${Math.random()}`;
+    const x = 15 + Math.random() * 70; // 15–85% horizontal within the player
+    setFloatingReactions(prev => [...prev, { uid, emoji, x }]);
+    setTimeout(() => {
+      setFloatingReactions(prev => prev.filter(r => r.uid !== uid));
+    }, 2200);
+  }, []);
+
+  useTable(tables.reaction, {
+    onInsert: reaction => {
+      // Only animate reactions that arrive after we joined this session
+      if (reaction.sentAt.toDate() < sessionStartRef.current) return;
+      addFloatingReaction(reaction.emoji);
+    },
+  });
 
   // ── YouTube player init ────────────────────────────────────────────────────
   useEffect(() => {
@@ -101,9 +130,6 @@ export function PlayerPanel(): JSX.Element {
     loadYouTubeAPI().then(() => {
       if (cancelled || playerRef.current) return;
 
-      // Create the target element manually — React never knows about it.
-      // YouTube replaces this div with an <iframe>. Since it's outside React's
-      // virtual DOM tree, there's no reconciliation conflict.
       const playerTarget = document.createElement('div');
       wrapper.appendChild(playerTarget);
 
@@ -133,7 +159,6 @@ export function PlayerPanel(): JSX.Element {
     return () => {
       cancelled = true;
     };
-    // onPlayerStateChange is stable (useCallback with no deps in the hook)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,10 +191,6 @@ export function PlayerPanel(): JSX.Element {
 
     const interval = setInterval(update, 500);
     return () => clearInterval(interval);
-    // Intentional: deps are primitive extractions from nowPlaying to avoid running
-    // on every render (useTable returns a new object reference each time).
-    // The full nowPlaying object is accessed inside via closure — safe because the
-    // effect re-runs whenever any of these meaningful values actually change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     playerReady,
@@ -225,12 +246,40 @@ export function PlayerPanel(): JSX.Element {
     localStorage.setItem(VIDEO_OFF_KEY, String(next));
   };
 
-  const addedByName = nowPlaying?.addedBy.toHexString().substring(0, 8) ?? '';
+  const handleReaction = (emoji: string): void => {
+    sendReaction({ emoji });
+  };
+
+  const addedByColor = nowPlaying ? identityToColor(nowPlaying.addedBy) : undefined;
+  const addedByName = nowPlaying
+    ? identity && nowPlaying.addedBy.isEqual(identity)
+      ? 'you'
+      : identityToShortId(nowPlaying.addedBy)
+    : '';
   const elapsedSeconds = duration > 0 ? progress * duration : 0;
 
   return (
     <div className="player-panel">
       <div className={`player-embed-wrapper${videoOff ? ' player-embed-wrapper--audio-only' : ''}`}>
+        {/* Floating reaction emojis — rendered within the player area */}
+        <div className="reactions-overlay" aria-hidden="true">
+          <AnimatePresence>
+            {floatingReactions.map(r => (
+              <motion.span
+                key={r.uid}
+                className="floating-reaction"
+                style={{ left: `${r.x}%` }}
+                initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                animate={{ opacity: [0, 1, 1, 0], y: -120, scale: [0.5, 1.3, 1.1, 0.9] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 2, ease: 'easeOut' }}
+              >
+                {r.emoji}
+              </motion.span>
+            ))}
+          </AnimatePresence>
+        </div>
+
         {!videoOff && !nowPlaying && (
           <div className="player-idle">
             <div className="vinyl-record" aria-hidden="true" />
@@ -241,14 +290,10 @@ export function PlayerPanel(): JSX.Element {
         {videoOff && (
           <AudioViz isPlaying={nowPlaying?.isPlaying ?? false} title={nowPlaying?.title ?? null} />
         )}
-        {/* wrapperRef div is always in the DOM — no display toggling.
-            YouTube creates its <iframe> inside here, outside React's tree.
-            In audio-only mode the embed is rendered at 1px via CSS but stays
-            in the DOM so YouTube keeps the audio stream alive. */}
         <div ref={wrapperRef} className="player-embed" />
       </div>
 
-      {/* Progress bar — sits between embed and controls, spans full width */}
+      {/* Progress bar */}
       {nowPlaying && (
         <div
           className="player-progress"
@@ -263,6 +308,21 @@ export function PlayerPanel(): JSX.Element {
           )}
         </div>
       )}
+
+      {/* Reaction bar — emoji buttons, visible whenever connected */}
+      <div className="player-reactions-bar">
+        {REACTION_EMOJIS.map(emoji => (
+          <button
+            key={emoji}
+            className="reaction-btn"
+            onClick={() => handleReaction(emoji)}
+            aria-label={`React with ${emoji}`}
+            title={`Send ${emoji}`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
 
       <div className="player-controls">
         <AnimatePresence mode="wait">
@@ -284,8 +344,8 @@ export function PlayerPanel(): JSX.Element {
                 <p className="now-playing-title">{nowPlaying.title}</p>
                 <p className="now-playing-by">
                   added by{' '}
-                  <span className="now-playing-username">
-                    {identity && nowPlaying.addedBy.isEqual(identity) ? 'you' : addedByName}
+                  <span className="now-playing-username" style={{ color: addedByColor }}>
+                    {addedByName}
                   </span>
                 </p>
               </div>

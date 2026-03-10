@@ -7,16 +7,24 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import AddToQueueReducer from "../add_to_queue_reducer";
+import ClearChatReducer from "../clear_chat_reducer";
 import PlayNextReducer from "../play_next_reducer";
 import RemoveFromQueueReducer from "../remove_from_queue_reducer";
 import SendMessageReducer from "../send_message_reducer";
+import SendReactionReducer from "../send_reaction_reducer";
 import SetNameReducer from "../set_name_reducer";
+import StartTypingReducer from "../start_typing_reducer";
+import StopTypingReducer from "../stop_typing_reducer";
 import TogglePlaybackReducer from "../toggle_playback_reducer";
 
 export type AddToQueueParams = __Infer<typeof AddToQueueReducer>;
+export type ClearChatParams = __Infer<typeof ClearChatReducer>;
 export type PlayNextParams = __Infer<typeof PlayNextReducer>;
 export type RemoveFromQueueParams = __Infer<typeof RemoveFromQueueReducer>;
 export type SendMessageParams = __Infer<typeof SendMessageReducer>;
+export type SendReactionParams = __Infer<typeof SendReactionReducer>;
 export type SetNameParams = __Infer<typeof SetNameReducer>;
+export type StartTypingParams = __Infer<typeof StartTypingReducer>;
+export type StopTypingParams = __Infer<typeof StopTypingReducer>;
 export type TogglePlaybackParams = __Infer<typeof TogglePlaybackReducer>;
 
