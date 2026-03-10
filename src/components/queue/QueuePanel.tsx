@@ -35,16 +35,14 @@ function QueueItemRow({ item, isOwn, onRemove }: QueueItemRowProps): JSX.Element
           {isOwn ? 'you' : item.addedBy.toHexString().substring(0, 8)}
         </p>
       </div>
-      {isOwn && (
-        <button
-          className="queue-item-remove"
-          onClick={() => onRemove(item.id)}
-          aria-label={`Remove ${item.title} from queue`}
-          title="Remove from queue"
-        >
-          ✕
-        </button>
-      )}
+      <button
+        className="queue-item-remove"
+        onClick={() => onRemove(item.id)}
+        aria-label={`Remove ${item.title} from queue`}
+        title="Remove from queue"
+      >
+        ✕
+      </button>
     </motion.div>
   );
 }
@@ -59,12 +57,6 @@ export function QueuePanel(): JSX.Element {
     [queueItems]
   );
 
-  const myPosition = useMemo(
-    () =>
-      identity ? (sorted.find(item => item.addedBy.isEqual(identity))?.position ?? null) : null,
-    [identity, sorted]
-  );
-
   const handleRemove = (queueItemId: bigint): void => {
     removeFromQueue({ queueItemId });
   };
@@ -73,9 +65,9 @@ export function QueuePanel(): JSX.Element {
     <div className="queue-panel">
       <div className="queue-header">
         <h2 className="queue-title">Up Next</h2>
-        {myPosition !== null && (
-          <span className="queue-my-position">You&apos;re #{myPosition} in queue</span>
-        )}
+        <span className="queue-count">
+          {sorted.length} {sorted.length === 1 ? 'song' : 'songs'}
+        </span>
       </div>
 
       <motion.div

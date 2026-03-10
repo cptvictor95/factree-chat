@@ -178,9 +178,6 @@ export const remove_from_queue = spacetimedb.reducer(
   (ctx, { queue_item_id }) => {
     const item = ctx.db.queue_item.id.find(queue_item_id);
     if (!item) throw new SenderError('Queue item not found');
-    if (!item.added_by.isEqual(ctx.sender)) {
-      throw new SenderError("Cannot remove another user's queue item");
-    }
 
     const removedPosition = item.position;
     ctx.db.queue_item.id.delete(queue_item_id);
