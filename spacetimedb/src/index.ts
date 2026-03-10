@@ -40,8 +40,15 @@ const queue_item = table(
 
 // Singleton table — always 0 or 1 rows. id is always 1.
 // Stores the currently playing video and a server-authoritative started_at timestamp.
-// Clients calculate elapsed = (now - started_at) to seek their YouTube player
-// to the correct position, achieving synchronized playback without coordination.
+//
+// Sync formula (when is_playing = true):
+//   elapsed = (client_now - started_at)
+//   → seek YouTube player to elapsed seconds
+//
+// Pause/resume:
+//   On pause: record paused_at_offset = (ctx.timestamp - started_at) in microseconds
+//   On resume: set started_at = ctx.timestamp - paused_at_offset
+//   → the same elapsed formula now correctly returns the pre-pause position
 const now_playing = table(
   { name: 'now_playing', public: true },
   {
@@ -53,6 +60,8 @@ const now_playing = table(
     added_by: t.identity(),
     started_at: t.timestamp(),
     is_playing: t.bool(),
+    // Microseconds of playback elapsed at the moment of pause. 0 when playing.
+    paused_at_offset: t.u64(),
   }
 );
 
@@ -69,9 +78,6 @@ type AppCtx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Shared helper: advances playback to the next item in the queue.
-// Called internally from add_to_queue, remove_from_queue, and the play_next reducer.
-// Spreading ctx.db.queue_item.iter() into an array before modifying prevents
-// any iterator invalidation issues.
 function tryPlayNext(ctx: AppCtx): void {
   const waiting = [...ctx.db.queue_item.iter()].sort((a, b) => a.position - b.position);
 
@@ -93,6 +99,7 @@ function tryPlayNext(ctx: AppCtx): void {
     added_by: next.added_by,
     started_at: ctx.timestamp,
     is_playing: true,
+    paused_at_offset: 0n,
   };
 
   const existing = ctx.db.now_playing.id.find(1);
@@ -207,6 +214,39 @@ export const play_next = spacetimedb.reducer(
     tryPlayNext(ctx);
   }
 );
+
+// Toggles playback between paused and playing for all clients in the room.
+//
+// On pause:
+//   Captures the current playback offset (ctx.timestamp - started_at) in microseconds
+//   and stores it in paused_at_offset. is_playing becomes false.
+//
+// On resume:
+//   Sets started_at = ctx.timestamp - paused_at_offset so that all clients
+//   recalculate elapsed = (now - started_at) and land at the correct position.
+//   is_playing becomes true, paused_at_offset resets to 0.
+export const toggle_playback = spacetimedb.reducer(ctx => {
+  const playing = ctx.db.now_playing.id.find(1);
+  if (!playing) return;
+
+  if (playing.is_playing) {
+    const offset = ctx.timestamp.microsSinceUnixEpoch - playing.started_at.microsSinceUnixEpoch;
+    ctx.db.now_playing.id.update({
+      ...playing,
+      is_playing: false,
+      paused_at_offset: offset,
+    });
+  } else {
+    const resumedMicros = ctx.timestamp.microsSinceUnixEpoch - playing.paused_at_offset;
+    ctx.db.now_playing.id.update({
+      ...playing,
+      is_playing: true,
+      // Structural object — SpacetimeDB serialises only microsSinceUnixEpoch
+      started_at: { microsSinceUnixEpoch: resumedMicros } as typeof ctx.timestamp,
+      paused_at_offset: 0n,
+    });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIFECYCLE HOOKS

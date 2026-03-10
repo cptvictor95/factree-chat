@@ -39,6 +39,7 @@ import PlayNextReducer from "./play_next_reducer";
 import RemoveFromQueueReducer from "./remove_from_queue_reducer";
 import SendMessageReducer from "./send_message_reducer";
 import SetNameReducer from "./set_name_reducer";
+import TogglePlaybackReducer from "./toggle_playback_reducer";
 
 // Import all procedure arg schemas
 
@@ -101,6 +102,7 @@ const reducersSchema = __reducers(
   __reducerSchema("remove_from_queue", RemoveFromQueueReducer),
   __reducerSchema("send_message", SendMessageReducer),
   __reducerSchema("set_name", SetNameReducer),
+  __reducerSchema("toggle_playback", TogglePlaybackReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

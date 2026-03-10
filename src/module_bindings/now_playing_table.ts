@@ -19,4 +19,5 @@ export default __t.row({
   addedBy: __t.identity().name("added_by"),
   startedAt: __t.timestamp().name("started_at"),
   isPlaying: __t.bool().name("is_playing"),
+  pausedAtOffset: __t.u64().name("paused_at_offset"),
 });

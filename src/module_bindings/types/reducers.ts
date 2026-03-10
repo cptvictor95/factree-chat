@@ -11,10 +11,12 @@ import PlayNextReducer from "../play_next_reducer";
 import RemoveFromQueueReducer from "../remove_from_queue_reducer";
 import SendMessageReducer from "../send_message_reducer";
 import SetNameReducer from "../set_name_reducer";
+import TogglePlaybackReducer from "../toggle_playback_reducer";
 
 export type AddToQueueParams = __Infer<typeof AddToQueueReducer>;
 export type PlayNextParams = __Infer<typeof PlayNextReducer>;
 export type RemoveFromQueueParams = __Infer<typeof RemoveFromQueueReducer>;
 export type SendMessageParams = __Infer<typeof SendMessageReducer>;
 export type SetNameParams = __Infer<typeof SetNameReducer>;
+export type TogglePlaybackParams = __Infer<typeof TogglePlaybackReducer>;
 
