@@ -179,3 +179,121 @@
   color: #e05050;
   margin-top: 0.1rem;
 }
+
+.add-to-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.add-to-queue-mode {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.add-to-queue-mode-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.add-to-queue-mode-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.add-to-queue-mode-btn--active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+.add-to-queue-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.add-to-queue-search-input {
+  width: 100%;
+  max-width: 280px;
+}
+
+.add-to-queue-search-status {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.add-to-queue-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.add-to-queue-results::-webkit-scrollbar {
+  width: 4px;
+}
+
+.add-to-queue-results::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.add-to-queue-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  transition: background 0.15s;
+}
+
+.add-to-queue-result-item:hover {
+  background: var(--surface-hover);
+}
+
+.add-to-queue-result-thumb {
+  width: 56px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.add-to-queue-result-title {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Lora', serif;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.add-to-queue-result-add {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
