@@ -12,12 +12,12 @@ Similar products use a mix of **evocative names** (Turntable.fm, Rave) and **des
 
 **Naming patterns in the space**
 
-| Pattern | Examples | Notes |
-|--------|----------|------|
-| Evocative + .fm | Turntable.fm, Last.fm | Strong fit for music; .fm reads as “radio/streaming.” Turntable.fm was memorable because “turntable” evoked DJ/room and matched the product. |
-| Descriptive / compound | Watch2Gether, Synclify, WatchBuddy, Cliqroom | Clearly communicate “watch/listen together” or “sync”; good for SEO and first-time discovery. |
-| Single evocative word | Rave, Kosmi | Short, brandable; meaning is learned, not literal. |
-| Coined / abstract | Kosmi, Metastream | Distinctive but require more marketing to stick. |
+| Pattern                | Examples                                     | Notes                                                                                                                                        |
+| ---------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evocative + .fm        | Turntable.fm, Last.fm                        | Strong fit for music; .fm reads as “radio/streaming.” Turntable.fm was memorable because “turntable” evoked DJ/room and matched the product. |
+| Descriptive / compound | Watch2Gether, Synclify, WatchBuddy, Cliqroom | Clearly communicate “watch/listen together” or “sync”; good for SEO and first-time discovery.                                                |
+| Single evocative word  | Rave, Kosmi                                  | Short, brandable; meaning is learned, not literal.                                                                                           |
+| Coined / abstract      | Kosmi, Metastream                            | Distinctive but require more marketing to stick.                                                                                             |
 
 **.fm fit**  
 .FM is widely used for music, podcasts, and streaming (Last.fm, Spotify/podcast use, Pandora). The registry positions it as a “cult brand” TLD for creativity and audio. For a **synchronized music listening room**, .fm is appropriate and reinforces “this is about audio/radio-style listening.”
@@ -26,7 +26,7 @@ Similar products use a mix of **evocative names** (Turntable.fm, Rave) and **des
 
 - **Pros:** Unique, ties to Factree parent brand, .fm fits music, easy to say and spell, not generic.
 - **Cons:** “Factree” does not by itself convey “sync listening room” or “watch party”; you rely on tagline and messaging to explain the product.
-- **Conclusion:** Keeping **factree.fm** is defensible if you pair it with a clear tagline (e.g. “Listen in sync. One room, one queue.”) and own “sync listening” / “watch party” in SEO and copy. If you ever need a name that *describes* the product for cold traffic, a secondary brand or product line (e.g. “Factree Room” or “Listen Room by Factree”) could sit under factree.fm.
+- **Conclusion:** Keeping **factree.fm** is defensible if you pair it with a clear tagline (e.g. “Listen in sync. One room, one queue.”) and own “sync listening” / “watch party” in SEO and copy. If you ever need a name that _describes_ the product for cold traffic, a secondary brand or product line (e.g. “Factree Room” or “Listen Room by Factree”) could sit under factree.fm.
 
 **Recommendation:** Keep **factree.fm** as the product name; invest in a strong tagline and consistent messaging so “factree” becomes associated with “sync listening room” over time.
 
@@ -113,7 +113,7 @@ For a **YouTube-focused sync room**, combine “watch party” / “listen toget
 
 **One-paragraph direction for an AI logo generator (or brief for a designer)**
 
-*“Logo for factree.fm, a synchronized music listening room (same second, shared queue, real-time chat). Prefer a wordmark-first approach: ‘factree’ or ‘factree.fm’ with distinctive, modern typography (warm but not childish; minimal but not cold). If an icon is included, it should suggest togetherness or sync (e.g. aligned elements, shared wave, overlapping forms) rather than literal music imagery like notes or headphones. Avoid tree silhouettes, musical notation, and radio clichés. The mark should work in a single color and at small sizes (favicon, app icon). Style: clean, memorable, and ownable—not generic music-app.”*
+_“Logo for factree.fm, a synchronized music listening room (same second, shared queue, real-time chat). Prefer a wordmark-first approach: ‘factree’ or ‘factree.fm’ with distinctive, modern typography (warm but not childish; minimal but not cold). If an icon is included, it should suggest togetherness or sync (e.g. aligned elements, shared wave, overlapping forms) rather than literal music imagery like notes or headphones. Avoid tree silhouettes, musical notation, and radio clichés. The mark should work in a single color and at small sizes (favicon, app icon). Style: clean, memorable, and ownable—not generic music-app.”_
 
 ---
 
